@@ -31,6 +31,13 @@ if [ -f frontend.pid ]; then
     rm -f frontend.pid
 fi
 
+# 杀死所有与项目相关的旧进程（作为额外保障）
+pids=$(ps aux | grep -E '(project-management-backend|vite)' | grep -v grep | awk '{print $2}')
+if [ ! -z "$pids" ]; then
+    echo "强制杀死残留进程: $pids"
+    kill $pids || kill -9 $pids
+fi
+
 # 等待进程完全结束
 sleep 3
 
