@@ -1,0 +1,24 @@
+{
+  "version": "1.3",
+  "lastUpdated": "2025-08-22T23:00:00+08:00",
+  "description": "项目管理工具 - 修复语法错误版本",
+  "features": [
+    "完整的全栈项目管理系统",
+    "Go后端服务 + PostgreSQL数据库",
+    "React前端 + TypeScript + Tailwind CSS",
+    "项目总览、OKR管理、看板视图、周会视图、个人视图",
+    "员工数据自动同步（每日11:00）",
+    "响应式设计支持",
+    "修复App.tsx语法错误，前端正常运行"
+  ],
+  "techStack": {
+    "frontend": ["React", "TypeScript", "Tailwind CSS", "Vite"],
+    "backend": ["Go", "Gin", "PostgreSQL"],
+    "database": "PostgreSQL (62个真实用户数据)"
+  },
+  "status": "稳定运行",
+  "ports": {
+    "frontend": "http://localhost:5173",
+    "backend": "http://localhost:9000"
+  }
+}

@@ -1,0 +1,93 @@
+/* Line clamp utilities for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ensure proper text overflow handling */
+.text-ellipsis {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Weekly meeting card specific styles */
+.weekly-card-fixed-height {
+  height: auto;
+  min-height: 400px;
+  max-height: 500px;
+}
+
+/* 周会视图网格布局 - 强制等宽分布 */
+.weekly-meeting-grid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  align-items: start;
+}
+
+/* 确保所有卡片等宽等高填满容器 */
+.weekly-meeting-grid > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 500px !important;
+  max-height: 600px !important;
+  flex: 1 1 0% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 响应式网格布局 */
+@media (max-width: 768px) {
+  .weekly-meeting-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .weekly-meeting-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .weekly-meeting-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1367px) and (max-width: 1919px) {
+  .weekly-meeting-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .weekly-meeting-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 2560px) {
+  .weekly-meeting-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+  }
+}
