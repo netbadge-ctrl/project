@@ -14,8 +14,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // OIDC配置
 const OIDC_CONFIG = {
-    clientId: 'api-uss',
-    clientSecret: 'fdd6739fdc5d36cf5f10b92b3464e165',
+    clientId: 'codebuddy',
+    clientSecret: 'e11cda4fdd2f6d24cce9b97feeadd4b4',
     provider: 'https://oidc-public.ksyun.com:443',
     redirectUri: 'http://120.92.36.175:5173/oidc-callback',
     scopes: ['openid', 'profile', 'email', 'groups', 'departments', 'skip_session']

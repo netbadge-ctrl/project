@@ -551,7 +551,7 @@ func (h *Handler) insertEmployee(employee models.Employee) error {
 func (h *Handler) CheckAuth(c *gin.Context) {
 	// 获取所有cookie，转发给金山云API
 	cookies := c.Request.Header.Get("Cookie")
-	
+
 	if cookies == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No cookies found"})
 		return
@@ -563,10 +563,10 @@ func (h *Handler) CheckAuth(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
 		return
 	}
-	
+
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Cookie", cookies)
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -574,25 +574,25 @@ func (h *Handler) CheckAuth(c *gin.Context) {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
 		return
 	}
-	
+
 	// 解析用户信息
 	var userData map[string]interface{}
 	if err := json.Unmarshal(body, &userData); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user data"})
 		return
 	}
-	
+
 	// 返回用户信息
 	c.JSON(http.StatusOK, userData)
 }
@@ -610,14 +610,14 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 	}
 
 	// OIDC配置
-	clientID := "api-uss"
-	clientSecret := "fdd6739fdc5d36cf5f10b92b3464e165"
+	clientID := "codebuddy"
+	clientSecret := "e11cda4fdd2f6d24cce9b97feeadd4b4"
 	tokenEndpoint := "https://oidc-public.ksyun.com:443/token"
 
 	// 准备token交换请求
 	formData := fmt.Sprintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&client_secret=%s",
 		req.Code, req.RedirectURI, clientID, clientSecret)
-	
+
 	fmt.Printf("OIDC Token request - URL: %s, Data: %s\n", tokenEndpoint, formData)
 
 	tokenReq, err := http.NewRequest("POST", tokenEndpoint, bytes.NewBufferString(formData))

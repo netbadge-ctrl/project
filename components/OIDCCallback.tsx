@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const OIDC_CONFIG = {
-    clientId: 'api-uss',
-    clientSecret: 'fdd6739fdc5d36cf5f10b92b3464e165',
+    clientId: 'codebuddy',
+    clientSecret: 'e11cda4fdd2f6d24cce9b97feeadd4b4',
     provider: 'https://oidc-public.ksyun.com:443',
     redirectUri: 'http://120.92.36.175:5173/oidc-callback',
     // 可能需要使用不同的token endpoint
