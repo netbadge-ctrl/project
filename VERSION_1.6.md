@@ -74,8 +74,8 @@
 ## 运行环境
 - Node.js + React + TypeScript (前端)
 - Go + Gin + SQLite (后端)
-- 开发服务器: http://localhost:5173
-- API服务器: http://localhost:9000
+- 开发服务器: http://120.92.36.175:5173
+- API服务器: http://120.92.36.175:9000
 
 ## 已知问题
 - 无重大已知问题

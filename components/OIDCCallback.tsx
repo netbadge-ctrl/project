@@ -37,7 +37,7 @@ const OIDCCallback: React.FC = () => {
                 console.log('Starting token exchange with code:', code);
                 
                 // 通过后端API交换授权码获取token
-                const tokenResponse = await fetch('http://localhost:9000/api/oidc-token', {
+                const tokenResponse = await fetch('http://120.92.36.175:9000/api/oidc-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -83,7 +83,7 @@ const OIDCCallback: React.FC = () => {
                     } else {
                         // 备用方案：通过API查找用户并保存
                         try {
-                            const usersResponse = await fetch('http://localhost:9000/api/users');
+                            const usersResponse = await fetch('http://120.92.36.175:9000/api/users');
                             const users = await usersResponse.json();
                             const dbUser = users.find((u: any) => u.email.toLowerCase() === userInfo.email.toLowerCase());
                             

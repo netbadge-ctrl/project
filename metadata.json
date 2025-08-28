@@ -18,7 +18,7 @@
   },
   "status": "稳定运行",
   "ports": {
-    "frontend": "http://localhost:5173",
-    "backend": "http://localhost:9000"
+    "frontend": "http://120.92.36.175:5173",
+    "backend": "http://120.92.36.175:9000"
   }
 }

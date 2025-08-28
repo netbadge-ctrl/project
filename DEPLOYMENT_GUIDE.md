@@ -34,7 +34,7 @@
 
 ## 🚀 当前运行状态
 
-**服务地址**: `http://localhost:9000`
+**服务地址**: `http://120.92.36.175:9000`
 
 **测试结果**:
 - ✅ 健康检查: `/health`
@@ -92,7 +92,7 @@ docker run -p 8080:8080 \
 
 ```typescript
 // 将模拟 API 替换为真实 API
-const API_BASE_URL = 'http://localhost:9000/api';
+const API_BASE_URL = 'http://120.92.36.175:9000/api';
 
 export const api = {
   fetchProjects: () => fetch(`${API_BASE_URL}/projects`).then(r => r.json()),
@@ -137,7 +137,7 @@ tail -f /var/log/project-management.log
 
 ### 健康检查
 ```bash
-curl http://localhost:9000/health
+curl http://120.92.36.175:9000/health
 ```
 
 ### 数据备份
@@ -192,4 +192,4 @@ pg_dump "postgresql://admin:Kingsoft0531@120.92.44.85:51022/project_codebuddy" >
 - ✅ Docker 容器化支持
 - ✅ 完整的文档和部署脚本
 
-**当前服务正在 `http://localhost:9000` 运行，可以立即开始前端集成！**
+**当前服务正在 `http://120.92.36.175:9000` 运行，可以立即开始前端集成！**

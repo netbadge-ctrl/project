@@ -1,7 +1,7 @@
 import { Project, User, OkrSet } from './types';
 
 // 后端API基础URL
-const API_BASE_URL = 'http://localhost:9000/api';
+const API_BASE_URL = 'http://120.92.36.175:9000/api';
 
 // 通用的API请求函数
 const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {

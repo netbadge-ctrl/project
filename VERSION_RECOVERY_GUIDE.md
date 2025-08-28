@@ -62,8 +62,8 @@ go run main.go &
 npm run dev
 
 # 4. 验证服务状态
-curl http://localhost:9000/health
-curl http://localhost:5173
+curl http://120.92.36.175:9000/health
+curl http://120.92.36.175:5173
 ```
 
 ### 方法3: Docker 部署
@@ -88,13 +88,13 @@ npm run dev
 恢复后请验证以下功能：
 
 ### 后端验证
-- [ ] 健康检查: `curl http://localhost:9000/health`
-- [ ] 用户API: `curl http://localhost:9000/api/users`
-- [ ] 项目API: `curl http://localhost:9000/api/projects`
-- [ ] OKR API: `curl http://localhost:9000/api/okr-sets`
+- [ ] 健康检查: `curl http://120.92.36.175:9000/health`
+- [ ] 用户API: `curl http://120.92.36.175:9000/api/users`
+- [ ] 项目API: `curl http://120.92.36.175:9000/api/projects`
+- [ ] OKR API: `curl http://120.92.36.175:9000/api/okr-sets`
 
 ### 前端验证
-- [ ] 页面正常加载: `http://localhost:5173`
+- [ ] 页面正常加载: `http://120.92.36.175:5173`
 - [ ] 用户登录功能正常
 - [ ] 项目列表显示正常
 - [ ] OKR页面功能正常
