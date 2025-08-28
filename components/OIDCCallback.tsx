@@ -5,7 +5,7 @@ const OIDC_CONFIG = {
     clientId: 'api-uss',
     clientSecret: 'fdd6739fdc5d36cf5f10b92b3464e165',
     provider: 'https://oidc-public.ksyun.com:443',
-    redirectUri: 'http://127.0.0.1:5173/oidc-callback',
+    redirectUri: 'http://120.92.36.175:5173/oidc-callback',
     // 可能需要使用不同的token endpoint
     tokenEndpoint: 'https://oidc-public.ksyun.com:443/token'
 };

@@ -53,7 +53,7 @@ cd ..
 # 启动前端服务
 echo "启动前端服务..."
 # 安装依赖（如果需要）
-# npm install
+npm install
 
 # 启动前端服务并记录 PID
 nohup npm run dev > frontend.log 2>&1 &
