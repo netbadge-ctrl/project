@@ -46,21 +46,36 @@ echo "启动后端服务..."
 cd backend
 export DATABASE_URL="postgresql://admin:Kingsoft0531@120.92.44.85:51022/project_codebuddy?sslmode=disable"
 export PORT="8080"
-# 设置生产环境变量
-export VITE_APP_ENV=production
-export VITE_API_BASE_URL=http://120.92.44.85:8080/api
-export VITE_FRONTEND_URL=http://120.92.44.85:5173
-export VITE_ENABLE_OIDC=true
-export VITE_MOCK_USER_ID=
 source /root/.bash_profile
 
 # 编译后端服务（如果需要）
+echo "编译后端服务..."
 go mod tidy
 go build -o project-management-backend main.go
 
+# 检查编译是否成功
+if [ ! -f "project-management-backend" ]; then
+    echo "后端编译失败！"
+    exit 1
+fi
+
+echo "后端编译成功，启动服务..."
 # 启动后端服务并记录 PID
 nohup ./project-management-backend > backend.log 2>&1 &
-echo $! > ../backend.pid
+backend_pid=$!
+echo $backend_pid > ../backend.pid
+echo "后端服务启动，PID: $backend_pid"
+
+# 等待后端启动
+sleep 3
+if kill -0 $backend_pid 2>/dev/null; then
+    echo "后端服务运行正常"
+else
+    echo "后端服务启动失败，查看日志:"
+    cat backend.log
+    exit 1
+fi
+
 cd ..
 
 # 启动前端服务
