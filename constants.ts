@@ -68,6 +68,7 @@ const employeeData = [
 export const ALL_USERS: User[] = employeeData.map(employee => ({
   id: String(employee.employee_id),
   name: employee.real_name,
+  email: `${employee.real_name.toLowerCase()}@company.com`,
   avatarUrl: `https://picsum.photos/seed/${employee.employee_id}/40/40`,
 }));
 
@@ -113,7 +114,12 @@ const addDays = (date: Date, days: number): Date => {
   result.setDate(result.getDate() + days);
   return result;
 };
-const formatDate = (date: Date): string => date.toISOString().split('T')[0];
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 
 export const PROJECTS: Project[] = [
@@ -138,7 +144,7 @@ export const PROJECTS: Project[] = [
     qaTesters: [
       { userId: '24533', startDate: formatDate(today), endDate: formatDate(addDays(today, 30)) },
     ],
-    proposalDate: formatDate(addDays(today, -60)),
+    proposedDate: formatDate(addDays(today, -60)),
     launchDate: formatDate(addDays(today, 30)),
     followers: ['14670', '22231'],
     comments: [
@@ -172,7 +178,7 @@ export const PROJECTS: Project[] = [
     qaTesters: [
       { userId: '20843', startDate: formatDate(addDays(today, -30)), endDate: formatDate(addDays(today, -6)) },
     ],
-    proposalDate: formatDate(addDays(today, -120)),
+    proposedDate: formatDate(addDays(today, -120)),
     launchDate: formatDate(addDays(today, -5)),
     followers: ['20416'],
     comments: [],
@@ -181,7 +187,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p3',
     name: '管理后台 V2.0',
-    priority: Priority.PersonalOKR,
+    priority: Priority.BusinessRequirement,
     businessProblem: '旧版后台操作繁琐，功能缺失，运营效率低下。',
     keyResultIds: ['kr3_1'],
     weeklyUpdate: '需求评审阶段，部分原型图已出。',
@@ -194,7 +200,7 @@ export const PROJECTS: Project[] = [
     backendDevelopers: [],
     frontendDevelopers: [],
     qaTesters: [],
-    proposalDate: formatDate(addDays(today, -7)),
+    proposedDate: formatDate(addDays(today, -7)),
     launchDate: formatDate(addDays(today, 90)),
     followers: [],
     comments: [],
@@ -203,7 +209,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p4',
     name: 'AI智能客服机器人',
-    priority: Priority.Urgent,
+    priority: Priority.CompanyOKR,
     businessProblem: '客服人力成本高，响应速度慢，需要引入AI提升效率和用户满意度。',
     keyResultIds: ['kr3_2'],
     weeklyUpdate: '核心意图识别模块开发完成，准确率达到85%。正在进行多轮对话逻辑的开发。',
@@ -221,7 +227,7 @@ export const PROJECTS: Project[] = [
     qaTesters: [
       { userId: '20843', startDate: formatDate(addDays(today, 10)), endDate: formatDate(addDays(today, 50)) },
     ],
-    proposalDate: formatDate(addDays(today, -50)),
+    proposedDate: formatDate(addDays(today, -50)),
     launchDate: formatDate(addDays(today, 50)),
     followers: ['20416', '14670'],
     comments: [
@@ -254,7 +260,7 @@ export const PROJECTS: Project[] = [
     qaTesters: [
       { userId: '25408', startDate: formatDate(addDays(today, -20)), endDate: formatDate(addDays(today, 20)) },
     ],
-    proposalDate: formatDate(addDays(today, -120)),
+    proposedDate: formatDate(addDays(today, -120)),
     launchDate: formatDate(addDays(today, 20)),
     followers: ['22231', '20810', '20416'],
     comments: [
@@ -267,7 +273,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p6',
     name: '官网2024版改版',
-    priority: Priority.Routine,
+    priority: Priority.TechOptimization,
     businessProblem: '旧版官网风格陈旧，无法体现公司新品牌形象，且移动端体验差。',
     keyResultIds: ['kr1_2'],
     weeklyUpdate: '后端接口开发完成，前端正在集成。',
@@ -285,7 +291,7 @@ export const PROJECTS: Project[] = [
     qaTesters: [
       { userId: '24533', startDate: formatDate(today), endDate: formatDate(addDays(today, 10)) },
     ],
-    proposalDate: formatDate(addDays(today, -60)),
+    proposedDate: formatDate(addDays(today, -60)),
     launchDate: formatDate(addDays(today, 10)),
     followers: ['14670', '22231', '21614', '20810', '24665', '20843'],
     comments: [
@@ -293,5 +299,38 @@ export const PROJECTS: Project[] = [
       { id: 'c6-2', userId: '20416', text: '@黄胜 前端同学加油，争取下周提测！', createdAt: formatDate(addDays(today, -1)) + 'T16:00:00Z', mentions: ['25408'] }
     ],
     changeLog: [],
+  },
+  {
+    id: 'p7',
+    name: '测试项目',
+    priority: Priority.BusinessRequirement,
+    businessProblem: '这是一个用于测试排期时间功能的项目，需要验证日期选择和显示的准确性。',
+    keyResultIds: ['kr1_1'],
+    weeklyUpdate: '项目排期时间已修正，当前进度正常。',
+    lastWeekUpdate: '<div>发现排期时间选择错误，需要从9月4-6号调整为9月3-5号。</div>',
+    status: ProjectStatus.InProgress,
+    productManagers: [
+      { userId: '22231', startDate: '2025-09-03', endDate: '2025-09-05' },
+    ],
+    backendDevelopers: [
+      { userId: '21614', startDate: '2025-09-03', endDate: '2025-09-05' },
+    ],
+    frontendDevelopers: [
+      { userId: '25408', startDate: '2025-09-03', endDate: '2025-09-05' },
+    ],
+    qaTesters: [
+      { userId: '24533', startDate: '2025-09-03', endDate: '2025-09-05' },
+    ],
+    proposedDate: '2025-09-01',
+    launchDate: '2025-09-05',
+    followers: ['14670', '20416'],
+    comments: [
+      { id: 'c7-1', userId: '22231', text: '已修正排期时间：从9月4-6号调整为9月3-5号，符合实际需求。', createdAt: '2025-09-03T10:00:00Z' },
+      { id: 'c7-2', userId: '14670', text: '确认排期修正无误，项目可以按计划进行。', createdAt: '2025-09-03T11:00:00Z' }
+    ],
+    changeLog: [
+      { id: 'cl7-1', userId: '22231', field: 'launchDate', oldValue: '2025-09-06', newValue: '2025-09-05', changedAt: '2025-09-03T09:30:00Z' },
+      { id: 'cl7-2', userId: '22231', field: 'productManagers', oldValue: '2025-09-04 to 2025-09-06', newValue: '2025-09-03 to 2025-09-05', changedAt: '2025-09-03T09:30:00Z' }
+    ],
   }
 ];

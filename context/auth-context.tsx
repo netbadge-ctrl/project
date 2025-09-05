@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import { api } from '../api';
 import { User } from '../types';
+import { appConfig, isDevelopment } from '../config/env';
 
 interface AuthContextType {
     user: User | null;
@@ -12,14 +13,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// OIDC配置
-const OIDC_CONFIG = {
-    clientId: 'codebuddy',
-    clientSecret: 'e11cda4fdd2f6d24cce9b97feeadd4b4',
-    provider: 'https://oidc-public.ksyun.com:443',
-    redirectUri: 'http://120.92.36.175:5173/oidc-callback',
-    scopes: ['openid', 'profile', 'email', 'groups', 'departments', 'skip_session']
-};
+// OIDC配置 - 使用环境配置
+const OIDC_CONFIG = appConfig.oidc;
 
 // 生成OIDC登录URL
 const generateOIDCLoginUrl = (): string => {
@@ -57,17 +52,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        const initAuth = () => {
+        const initAuth = async () => {
             setIsLoading(true);
             
-            // 检查本地存储的认证状态
-            const localUser = checkLocalAuth();
-            
-            if (localUser) {
-                setUser(localUser);
-                setIsAuthenticated(true);
+            // 开发模式：跳过OIDC认证，使用模拟用户
+            if (isDevelopment && !appConfig.enableOIDC) {
+                console.log('🔧 Development mode: Using mock authentication');
+                try {
+                    const users = await api.fetchUsers();
+                    const mockUser = users.find(u => u.id === appConfig.mockUserId) || users[0];
+                    
+                    if (mockUser) {
+                        setUser(mockUser);
+                        setIsAuthenticated(true);
+                        console.log('🔧 Mock user loaded:', mockUser.name);
+                    } else {
+                        console.error('🔧 No mock user found');
+                        setIsAuthenticated(false);
+                    }
+                } catch (error) {
+                    console.error('🔧 Failed to load mock user:', error);
+                    setIsAuthenticated(false);
+                }
             } else {
-                setIsAuthenticated(false);
+                // 生产模式：使用OIDC认证
+                const localUser = checkLocalAuth();
+                
+                if (localUser) {
+                    setUser(localUser);
+                    setIsAuthenticated(true);
+                } else {
+                    setIsAuthenticated(false);
+                }
             }
             
             setIsLoading(false);

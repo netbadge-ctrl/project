@@ -19,16 +19,17 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
   onSave,
   isInvalid = false
 }) => {
-  const [currentSelection, setCurrentSelection] = useState<string[]>(selectedKrIds);
+  const [currentSelection, setCurrentSelection] = useState<string[]>(selectedKrIds || []);
 
   useEffect(() => {
-    setCurrentSelection(selectedKrIds);
+    setCurrentSelection(selectedKrIds || []);
   }, [selectedKrIds, isOpen]);
 
   const handleToggleOption = (krId: string) => {
-    const newSelection = currentSelection.includes(krId)
-      ? currentSelection.filter(id => id !== krId)
-      : [...currentSelection, krId];
+    const selection = currentSelection || [];
+    const newSelection = selection.includes(krId)
+      ? selection.filter(id => id !== krId)
+      : [...selection, krId];
     setCurrentSelection(newSelection);
   };
 
@@ -94,7 +95,7 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
                     ) : (
                       <div className="space-y-3">
                         {okr.keyResults.map((kr, krIndex) => {
-                          const isSelected = currentSelection.includes(kr.id);
+                          const isSelected = (currentSelection || []).includes(kr.id);
                           return (
                             <label
                               key={kr.id}

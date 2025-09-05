@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Project, User, Role, TeamMember, ProjectRoleKey } from '../types';
 import { IconX, IconTrash, IconPlus, IconLink, IconSearch } from './Icons';
-import { DateRangePicker } from './DateRangePicker';
+import { EnhancedDateRangePicker } from './EnhancedDateRangePicker';
 import { fuzzySearch } from '../utils';
 import { SearchableSingleSelectDropdown } from './SearchableSingleSelectDropdown';
 import { useDropdownPosition } from '../hooks/useDropdownPosition';
@@ -74,7 +74,10 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
       const isFirstMember = currentTeam.length === 0;
       const newMember: TeamMemberWithState = {
         userId,
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: (() => {
+          const today = new Date();
+          return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        })(),
         endDate: '',
         useSharedSchedule: !isFirstMember,
         _tempId: `member_new_${Date.now()}`
@@ -221,11 +224,12 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
                                     <div>
                                         { index === 0 ? (
                                              <div>
-                                                <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">排期时间范围</label>
-                                                <DateRangePicker
+                                                <EnhancedDateRangePicker
                                                     startDate={member.startDate}
                                                     endDate={member.endDate}
                                                     onSelectRange={(start, end) => handleIndividualDateChange(member._tempId, start, end)}
+                                                    label="排期时间范围"
+                                                    placeholder="选择项目排期日期范围"
                                                 />
                                             </div>
                                         ) : member.useSharedSchedule ? (
@@ -237,11 +241,12 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
                                             </div>
                                         ) : (
                                             <div>
-                                                <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">个人排期时间范围</label>
-                                                <DateRangePicker
+                                                <EnhancedDateRangePicker
                                                     startDate={member.startDate}
                                                     endDate={member.endDate}
                                                     onSelectRange={(start, end) => handleIndividualDateChange(member._tempId, start, end)}
+                                                    label="个人排期时间范围"
+                                                    placeholder="选择个人排期日期范围"
                                                 />
                                             </div>
                                         )}

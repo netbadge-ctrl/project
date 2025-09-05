@@ -23,11 +23,11 @@ export const ChangeLogModal: React.FC<ChangeLogModalProps> = ({ project, allUser
         </div>
 
         <div className="flex-grow p-4 overflow-y-auto">
-          {project.changeLog.length === 0 ? (
+          {(project.changeLog || []).length === 0 ? (
             <div className="text-center text-gray-400 dark:text-gray-500 pt-10">暂无变更记录</div>
           ) : (
             <div className="space-y-4">
-              {project.changeLog.map(log => {
+              {(project.changeLog || []).map(log => {
                 const user = getUser(log.userId);
                 return (
                   <div key={log.id} className="flex items-start gap-4 text-sm">
@@ -40,9 +40,19 @@ export const ChangeLogModal: React.FC<ChangeLogModalProps> = ({ project, allUser
                             <span className="text-gray-500 dark:text-gray-400"> 将 </span>
                             <span className="font-semibold text-cyan-600 dark:text-cyan-400">{log.field}</span>
                             <span className="text-gray-500 dark:text-gray-400"> 从 </span>
-                            <span className="font-semibold text-yellow-600 dark:text-yellow-400 bg-black/5 dark:bg-black/20 px-1 rounded">{log.oldValue || '空'}</span>
+                            <span className="font-semibold text-yellow-600 dark:text-yellow-400 bg-black/5 dark:bg-black/20 px-1 rounded">
+                              {log.field === '本周进展/问题' || log.field === '上周进展/问题' || log.field === '解决的业务问题' 
+                                ? (log.oldValue ? log.oldValue.replace(/<[^>]*>/g, '').trim() || '空' : '空')
+                                : (log.oldValue || '空')
+                              }
+                            </span>
                             <span className="text-gray-500 dark:text-gray-400"> 修改为 </span>
-                            <span className="font-semibold text-green-600 dark:text-green-400 bg-black/5 dark:bg-black/20 px-1 rounded">{log.newValue || '空'}</span>
+                            <span className="font-semibold text-green-600 dark:text-green-400 bg-black/5 dark:bg-black/20 px-1 rounded">
+                              {log.field === '本周进展/问题' || log.field === '上周进展/问题' || log.field === '解决的业务问题'
+                                ? (log.newValue ? log.newValue.replace(/<[^>]*>/g, '').trim() || '空' : '空')
+                                : (log.newValue || '空')
+                              }
+                            </span>
                         </p>
                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formatDateTime(log.changedAt)}</p>
                     </div>

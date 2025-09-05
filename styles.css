@@ -91,3 +91,223 @@
     gap: 1rem;
   }
 }
+
+/* 高度自适应相关样式 */
+.line-clamp-5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 确保内容编辑器的动态高度 */
+.dynamic-height {
+  transition: height 0.2s ease-in-out;
+}
+
+/* 响应式文本截断 */
+@media (max-width: 768px) {
+  .line-clamp-5 {
+    -webkit-line-clamp: 3;
+    max-height: 4.5rem; /* 3 lines * 1.5rem */
+  }
+}
+
+@media (max-width: 480px) {
+  .line-clamp-5 {
+    -webkit-line-clamp: 2;
+    max-height: 3rem; /* 2 lines * 1.5rem */
+  }
+}
+
+/* 富文本编辑器自适应高度 */
+.rich-text-editor {
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  resize: vertical;
+  transition: height 0.2s ease-in-out;
+}
+
+/* 表格单元格内容自适应 */
+.table-cell-content {
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 确保在不同屏幕尺寸下的适配 */
+@media (max-width: 1024px) {
+  .table-cell-content {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-cell-content {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
+/* 项目总览卡片样式 */
+.project-overview-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.project-overview-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 气泡提示样式增强 */
+.tooltip-arrow {
+  position: absolute;
+  top: -4px;
+  left: 16px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid #1f2937;
+}
+
+.dark .tooltip-arrow {
+  border-bottom-color: #374151;
+}
+
+/* 项目总览网格布局 */
+.project-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .project-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 项目字段标题样式 */
+.field-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.dark .field-title {
+  color: #d1d5db;
+}
+
+.field-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* 文本截断和自适应文本区域样式 */
+.line-clamp-5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* 自适应文本区域过渡动画 */
+.auto-resize-textarea {
+  transition: height 0.2s ease-in-out;
+}
+
+/* 截断文本展开/收起按钮样式 */
+.truncated-text-toggle {
+  transition: color 0.2s ease-in-out;
+}
+
+.truncated-text-toggle:hover {
+  text-decoration: underline;
+}
+
+/* 富文本显示样式 */
+.rich-text-display {
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.rich-text-display p {
+  margin: 0 0 0.5rem 0;
+}
+
+.rich-text-display p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-display strong,
+.rich-text-display b {
+  font-weight: 600;
+  color: inherit;
+}
+
+.rich-text-display em,
+.rich-text-display i {
+  font-style: italic;
+}
+
+.rich-text-display u {
+  text-decoration: underline;
+}
+
+.rich-text-display br {
+  display: block;
+  margin: 0.25rem 0;
+}
+
+.rich-text-display div {
+  margin-bottom: 0.5rem;
+}
+
+.rich-text-display div:last-child {
+  margin-bottom: 0;
+}
+
+/* 支持颜色样式 */
+.rich-text-display [style*="color: red"],
+.rich-text-display [style*="color:#ff0000"],
+.rich-text-display [style*="color: #ff0000"] {
+  color: #dc2626 !important;
+}
+
+.rich-text-display [style*="color: blue"],
+.rich-text-display [style*="color:#0000ff"],
+.rich-text-display [style*="color: #0000ff"] {
+  color: #2563eb !important;
+}
+
+.rich-text-display [style*="color: green"],
+.rich-text-display [style*="color:#008000"],
+.rich-text-display [style*="color: #008000"] {
+  color: #16a34a !important;
+}
+
+/* 暗色模式下的富文本样式 */
+.dark .rich-text-display [style*="color: red"],
+.dark .rich-text-display [style*="color:#ff0000"],
+.dark .rich-text-display [style*="color: #ff0000"] {
+  color: #f87171 !important;
+}
+
+.dark .rich-text-display [style*="color: blue"],
+.dark .rich-text-display [style*="color:#0000ff"],
+.dark .rich-text-display [style*="color: #0000ff"] {
+  color: #60a5fa !important;
+}
+
+.dark .rich-text-display [style*="color: green"],
+.dark .rich-text-display [style*="color:#008000"],
+.dark .rich-text-display [style*="color: #008000"] {
+  color: #4ade80 !important;
+}

@@ -39,9 +39,17 @@ export const WeeklyMeetingFilterBar: React.FC<WeeklyMeetingFilterBarProps> = ({
         .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
         .map(u => ({ value: u.id, label: u.name }));
     
-    const statusOptions = Object.values(ProjectStatus)
-        .filter(s => s !== ProjectStatus.Launched && s !== ProjectStatus.NotStarted && s !== ProjectStatus.Paused)
-        .map(s => ({ value: s, label: s }));
+    const statusOptions = [
+        ProjectStatus.Discussion,
+        ProjectStatus.RequirementsDone,
+        ProjectStatus.ReviewDone,
+        ProjectStatus.ProductDesign,
+        ProjectStatus.InProgress,
+        ProjectStatus.DevDone,
+        ProjectStatus.Testing,
+        ProjectStatus.TestDone,
+        ProjectStatus.ProjectInProgress,
+    ].map(s => ({ value: s, label: s }));
     
     return (
         <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl p-4 flex flex-wrap items-center gap-4 mb-6">

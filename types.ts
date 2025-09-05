@@ -27,8 +27,9 @@ export enum ProjectStatus {
   DevDone = '开发完成',
   Testing = '测试中',
   TestDone = '测试完成',
-  Paused = '暂停',
   Launched = '已上线',
+  Paused = '暂停',
+  ProjectInProgress = '项目进行中',
 }
 
 export enum Priority {

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Project, User, ProjectStatus, Priority, OKR } from '../types';
 import { WeeklyMeetingProjectCard } from './WeeklyMeetingProjectCard';
 import { WeeklyMeetingFilterBar } from './WeeklyMeetingFilterBar';
+import { useFilterState } from '../context/FilterStateContext';
 
 interface WeeklyMeetingViewProps {
     projects: Project[];
@@ -11,11 +12,21 @@ interface WeeklyMeetingViewProps {
 }
 
 export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, allUsers, activeOkrs, onOpenModal }) => {
-    // State for filters
-    const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
-    const [selectedKrIds, setSelectedKrIds] = useState<string[]>([]);
-    const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
-    const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+    // 使用新的状态管理系统
+    const { state, updateWeeklyMeetingFilters } = useFilterState();
+    const filters = state.weeklyMeeting;
+
+    // 本地状态处理函数
+    const setSelectedPriorities = (value: string[]) => updateWeeklyMeetingFilters({ selectedPriorities: value });
+    const setSelectedKrIds = (value: string[]) => updateWeeklyMeetingFilters({ selectedKrIds: value });
+    const setSelectedParticipantIds = (value: string[]) => updateWeeklyMeetingFilters({ selectedParticipantIds: value });
+    const setSelectedStatuses = (value: string[]) => updateWeeklyMeetingFilters({ selectedStatuses: value });
+
+    // 从状态中获取当前值
+    const selectedPriorities = filters.selectedPriorities;
+    const selectedKrIds = filters.selectedKrIds;
+    const selectedParticipantIds = filters.selectedParticipantIds;
+    const selectedStatuses = filters.selectedStatuses;
 
     const keyResultToOkrMap = useMemo(() => {
         const map = new Map<string, string>();
@@ -65,9 +76,9 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
         // 3. Sorting
         const priorityOrder: Record<Priority, number> = {
             [Priority.DeptOKR]: 0,
-            [Priority.PersonalOKR]: 1,
-            [Priority.Urgent]: 2,
-            [Priority.Routine]: 3,
+            [Priority.CompanyOKR]: 1,
+            [Priority.BusinessRequirement]: 2,
+            [Priority.TechOptimization]: 3,
         };
         
         return filteredProjects.sort((a, b) => {

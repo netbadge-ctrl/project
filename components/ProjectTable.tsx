@@ -7,6 +7,9 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { DatePicker } from './DatePicker';
 import { RichTextInput } from './RichTextInput';
 import { RichTextEditableCell } from './RichTextEditableCell';
+import { AutoResizeTextarea } from './AutoResizeTextarea';
+import { AutoResizeInput } from './AutoResizeInput';
+import { TruncatedText } from './TruncatedText';
 import { TooltipPortal } from './TooltipPortal';
 import { TeamScheduleTooltip } from './TeamScheduleTooltip';
 import { useDropdownPosition } from '../hooks/useDropdownPosition';
@@ -92,6 +95,13 @@ const EditableCell = ({ value, onSave, type = 'text', className = '', options, d
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState(value);
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // 自动调整高度函数
+    const autoResize = (element: HTMLTextAreaElement) => {
+        element.style.height = 'auto';
+        element.style.height = `${element.scrollHeight}px`;
+    };
     
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const triggerRef = useRef<HTMLDivElement>(null);
@@ -107,9 +117,13 @@ const EditableCell = ({ value, onSave, type = 'text', className = '', options, d
             inputRef.current.focus();
             if (inputRef.current instanceof HTMLInputElement || inputRef.current instanceof HTMLTextAreaElement) {
                 inputRef.current.select();
+                // 如果是textarea，自动调整高度
+                if (type === 'textarea' && textareaRef.current) {
+                    autoResize(textareaRef.current);
+                }
             }
         }
-    }, [isEditing]);
+    }, [isEditing, type]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -136,14 +150,15 @@ const EditableCell = ({ value, onSave, type = 'text', className = '', options, d
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             if (type === 'textarea') {
-                // 对于textarea，支持换行：Shift+Enter换行，Enter保存
-                if (!e.shiftKey) {
+                // 对于textarea，Enter键直接换行，Ctrl+Enter或Cmd+Enter保存
+                if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     handleSave();
                 }
-                // Shift+Enter允许换行（默认行为）
+                // 普通Enter键允许换行（默认行为）
             } else {
                 // 对于普通input，Enter直接保存
+                e.preventDefault();
                 handleSave();
             }
         } else if (e.key === 'Escape') {
@@ -193,14 +208,54 @@ const EditableCell = ({ value, onSave, type = 'text', className = '', options, d
 
     if (isEditing) {
         if (type === 'textarea') {
-            return <textarea ref={inputRef as React.Ref<HTMLTextAreaElement>} value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} className={`${editTextAreaClass} ${className}`} />;
+            return (
+                <AutoResizeTextarea
+                    value={currentValue}
+                    onChange={setCurrentValue}
+                    placeholder="请输入内容..."
+                    className={`${editInputClass} ${className}`}
+                    minRows={2}
+                    maxRows={10}
+                    onSave={handleSave}
+                    onCancel={() => {
+                        setCurrentValue(value);
+                        setIsEditing(false);
+                    }}
+                />
+            );
         }
-        return <input ref={inputRef as React.Ref<HTMLInputElement>} type={type} value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} className={`${editInputClass} ${className}`} />;
+        
+        // 对于普通文本输入，也使用自动调整高度的组件
+        return (
+            <AutoResizeInput
+                value={currentValue}
+                onChange={setCurrentValue}
+                placeholder="请输入内容..."
+                className={`${editInputClass} ${className}`}
+                minRows={1}
+                maxRows={3}
+                onSave={handleSave}
+                onCancel={() => {
+                    setCurrentValue(value);
+                    setIsEditing(false);
+                }}
+                onKeyDown={handleKeyDown}
+            />
+        );
     }
     
     return (
         <div onClick={() => setIsEditing(true)} className={`w-full h-full cursor-pointer p-1.5 -m-1.5 rounded-md hover:bg-gray-200/50 dark:hover:bg-[#3a3a3a] transition-colors duration-200 flex items-center ${className}`}>
-             <div className="whitespace-pre-wrap">{renderValue()}</div>
+            {type === 'textarea' ? (
+                <TruncatedText 
+                    text={renderValue() as string} 
+                    maxLines={5} 
+                    className="whitespace-pre-wrap table-cell-content w-full"
+                    showTooltip={true}
+                />
+            ) : (
+                <div className="whitespace-pre-wrap table-cell-content">{renderValue()}</div>
+            )}
         </div>
     );
 };
@@ -311,7 +366,7 @@ const ActionsCell: React.FC<{
     const menuRef = useRef<HTMLDivElement>(null);
 
     const menuStyle = useDropdownPosition({ triggerRef: buttonRef, menuRef, isOpen, align: 'end', gap: 8 });
-    const isFollowing = (project.followers || []).includes(currentUser.id);
+    const isFollowing = currentUser && (project.followers || []).includes(currentUser.id);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -475,8 +530,26 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
   if (project.isNew) {
     return (
       <tr className="bg-indigo-50 dark:bg-[#2a2a2a]/50 border-b border-gray-200 dark:border-[#363636] relative">
-        <td style={columnStyles[0]} className={getTdClassName(0, true)}><input type="text" value={project.name} onChange={(e) => handleUpdateField('name', e.target.value)} className={editInputClass} placeholder="新项目名称" /></td>
-        <td style={columnStyles[1]} className={getTdClassName(1, true)}><textarea value={project.businessProblem} onChange={(e) => handleUpdateField('businessProblem', e.target.value)} className={editTextAreaClass} placeholder="解决的核心业务问题" /></td>
+        <td style={columnStyles[0]} className={getTdClassName(0, true)}>
+          <AutoResizeInput
+            value={project.name}
+            onChange={(val) => handleUpdateField('name', val)}
+            placeholder="新项目名称"
+            className={editInputClass}
+            minRows={1}
+            maxRows={3}
+          />
+        </td>
+        <td style={columnStyles[1]} className={getTdClassName(1, true)}>
+          <AutoResizeTextarea
+            value={project.businessProblem}
+            onChange={(val) => handleUpdateField('businessProblem', val)}
+            placeholder="解决的核心业务问题"
+            className={editInputClass}
+            minRows={2}
+            maxRows={8}
+          />
+        </td>
         <td style={columnStyles[2]} className={getTdClassName(2, true)}><InlineSelect value={project.status} onSave={(v) => handleUpdateField('status', v)} options={Object.values(ProjectStatus).map(s => ({value: s, label: s}))} placeholder="选择状态" /></td>
         <td style={columnStyles[3]} className={getTdClassName(3, true)}><InlineSelect value={project.priority} onSave={(v) => handleUpdateField('priority', v)} options={Object.values(Priority).map(p => ({value: p, label: p}))} placeholder="选择优先级" /></td>
         <td style={columnStyles[4]} className={getTdClassName(4, true)}><OkrMultiSelectCell selectedKrIds={project.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
@@ -510,10 +583,18 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
         <td style={columnStyles[4]} className={getTdClassName(4)}><OkrMultiSelectCell selectedKrIds={project.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
         <td style={columnStyles[5]} className={getTdClassName(5)}><RichTextEditableCell html={project.weeklyUpdate} onSave={(val) => handleUpdateField('weeklyUpdate', val)} /></td>
         <td style={columnStyles[6]} className={getTdClassName(6)}>
-            <div 
-                dangerouslySetInnerHTML={{ __html: project.lastWeekUpdate || `<span class="text-gray-400 dark:text-gray-500">N/A</span>`}} 
-                className="w-full h-full p-1.5 -m-1.5 whitespace-pre-wrap text-gray-500 dark:text-gray-400"
-            />
+            <div className="w-full h-full p-1.5 -m-1.5 cursor-pointer rounded-md hover:bg-gray-200/50 dark:hover:bg-[#3a3a3a] transition-colors duration-200 flex items-center">
+                {project.lastWeekUpdate ? (
+                    <TruncatedText 
+                        text={project.lastWeekUpdate.replace(/<[^>]*>/g, '')} 
+                        maxLines={5} 
+                        className="whitespace-pre-wrap table-cell-content w-full text-gray-500 dark:text-gray-400"
+                        showTooltip={true}
+                    />
+                ) : (
+                    <span className="text-gray-400 dark:text-gray-500">N/A</span>
+                )}
+            </div>
         </td>
 
         {roleInfo.map(({ key, name }, index) => (
@@ -553,12 +634,12 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
         if (index < leftStickyColumnCount) {
             style.position = 'sticky';
             style.left = leftOffsets[index];
-            style.zIndex = 1;
+            style.zIndex = 5;
         }
         if (index >= tableHeaders.length - rightStickyColumnCount) {
             style.position = 'sticky';
             style.right = 0;
-            style.zIndex = 1;
+            style.zIndex = 5;
         }
         return style;
     });
@@ -617,59 +698,65 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
   const getThStyle = (index: number): React.CSSProperties => {
       const style = { ...columnStyles[index] };
       if (style.position === 'sticky') {
-          style.zIndex = 2; // Header on top
+          // 表头的固定列需要更高的z-index，确保在所有内容之上
+          style.zIndex = 15;
+      } else {
+          // 非固定列的表头也需要足够高的z-index
+          style.zIndex = 12;
       }
       return style;
   };
 
   return (
-    <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl overflow-x-auto">
-      <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-        <thead className="sticky top-0 z-10">
-          <tr>
-            {tableHeaders.map((header, index) => (
-              <th key={header.key} style={getThStyle(index)} className={getThClassName(index)}>
-                {header.key === 'name' ? (
-                  <div className="flex items-center justify-between">
-                    <span>{header.label}</span>
-                    <button
-                      onClick={onCreateProject}
-                      className="ml-3 flex items-center gap-1.5 px-2.5 py-1.5 bg-[#6C63FF] text-white rounded-md text-xs font-medium hover:bg-[#5a52d9] transition-all duration-200 shadow-sm hover:shadow-md"
-                      title="创建新项目"
-                    >
-                      <IconPlus className="w-3.5 h-3.5" />
-                      <span>新建</span>
-                    </button>
-                  </div>
-                ) : (
-                  header.label
-                )}
-              </th>
+    <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl h-full flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
+        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+          <thead className="sticky top-0 z-20">
+            <tr>
+              {tableHeaders.map((header, index) => (
+                <th key={header.key} style={getThStyle(index)} className={getThClassName(index)}>
+                  {header.key === 'name' ? (
+                    <div className="flex items-center justify-between">
+                      <span>{header.label}</span>
+                      <button
+                        onClick={onCreateProject}
+                        className="ml-3 flex items-center gap-1.5 px-2.5 py-1.5 bg-[#6C63FF] text-white rounded-md text-xs font-medium hover:bg-[#5a52d9] transition-all duration-200 shadow-sm hover:shadow-md"
+                        title="创建新项目"
+                      >
+                        <IconPlus className="w-3.5 h-3.5" />
+                        <span>新建</span>
+                      </button>
+                    </div>
+                  ) : (
+                    header.label
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-[#363636]">
+            {projects.map(project => (
+              <ProjectRow
+                key={project.id}
+                project={project}
+                allUsers={allUsers}
+                activeOkrs={activeOkrs}
+                currentUser={currentUser}
+                onSave={onSaveNewProject}
+                onUpdateProject={onUpdateProject}
+                onDelete={onDeleteProject}
+                onCancel={onCancelNewProject}
+                onOpenModal={onOpenModal}
+                onToggleFollow={onToggleFollow}
+                columnStyles={columnStyles}
+                getTdClassName={getTdClassName}
+                onCellMouseEnter={handleCellMouseEnter}
+                onCellMouseLeave={handleCellMouseLeave}
+              />
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200 dark:divide-[#363636]">
-          {projects.map(project => (
-            <ProjectRow
-              key={project.id}
-              project={project}
-              allUsers={allUsers}
-              activeOkrs={activeOkrs}
-              currentUser={currentUser}
-              onSave={onSaveNewProject}
-              onUpdateProject={onUpdateProject}
-              onDelete={onDeleteProject}
-              onCancel={onCancelNewProject}
-              onOpenModal={onOpenModal}
-              onToggleFollow={onToggleFollow}
-              columnStyles={columnStyles}
-              getTdClassName={getTdClassName}
-              onCellMouseEnter={handleCellMouseEnter}
-              onCellMouseLeave={handleCellMouseLeave}
-            />
-          ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
       {tooltipData.project && tooltipData.targetRect && (
           <TooltipPortal targetRect={tooltipData.targetRect}>
               <TeamScheduleTooltip project={tooltipData.project} allUsers={allUsers} />

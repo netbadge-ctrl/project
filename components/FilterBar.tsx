@@ -45,7 +45,20 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     setSelectedKrs,
 }) => {
     
-    const statusOptions = Object.values(ProjectStatus).map(s => ({ value: s, label: s }));
+    const statusOptions = [
+        ProjectStatus.NotStarted,
+        ProjectStatus.Discussion,
+        ProjectStatus.RequirementsDone,
+        ProjectStatus.ReviewDone,
+        ProjectStatus.ProductDesign,
+        ProjectStatus.InProgress,
+        ProjectStatus.DevDone,
+        ProjectStatus.Testing,
+        ProjectStatus.TestDone,
+        ProjectStatus.Launched,
+        ProjectStatus.Paused,
+        ProjectStatus.ProjectInProgress,
+    ].map(s => ({ value: s, label: s }));
     const priorityOptions = Object.values(Priority).map(p => ({ value: p, label: p }));
     const userOptions = allUsers
         .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))

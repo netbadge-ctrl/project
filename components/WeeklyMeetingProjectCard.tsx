@@ -4,35 +4,73 @@ import { IconMessageCircle } from './Icons';
 
 const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project: Project }> = ({ priority, projectOkrs, project }) => {
     const [showTooltip, setShowTooltip] = useState(false);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    
+    const handleMouseMove = (e: React.MouseEvent) => {
+        setMousePosition({ 
+            x: e.clientX + window.scrollX, 
+            y: e.clientY + window.scrollY 
+        });
+    };
+    
+    const handleMouseEnter = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        // 添加500ms延迟，悬停后才显示弹窗
+        timeoutRef.current = setTimeout(() => {
+            setShowTooltip(true);
+        }, 500);
+    };
+    
+    const handleMouseLeave = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setShowTooltip(false);
+    };
+    
+    React.useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
     
     const priorityStyles: Record<Priority, string> = {
         [Priority.DeptOKR]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/70 dark:text-red-200 dark:border-red-500/80',
-        [Priority.PersonalOKR]: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-600/70 dark:text-orange-200 dark:border-orange-500/80',
-        [Priority.Urgent]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/70 dark:text-yellow-200 dark:border-yellow-500/80',
-        [Priority.Routine]: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-600/70 dark:text-blue-200 dark:border-blue-500/80',
+        [Priority.CompanyOKR]: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-600/70 dark:text-orange-200 dark:border-orange-500/80',
+        [Priority.BusinessRequirement]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/70 dark:text-yellow-200 dark:border-yellow-500/80',
+        [Priority.TechOptimization]: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-600/70 dark:text-blue-200 dark:border-blue-500/80',
     }
     
     return (
         <div className="relative">
             <span 
                 className={`px-2 py-0.5 text-xs font-semibold rounded-md border cursor-pointer ${priorityStyles[priority]}`}
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                onMouseMove={handleMouseMove}
             >
                 {priority}
             </span>
             
             {showTooltip && (
-                <div className="absolute z-[9999] top-full left-0 mt-2 w-80 p-3 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#363636] rounded-lg shadow-lg">
-                    <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">关联 OKR</h4>
-                    <div className="text-xs space-y-2 max-h-40 overflow-y-auto">
+                <div className="fixed z-[10000] w-96 p-4 bg-white dark:bg-[#1a1a1a] border-2 border-gray-300 dark:border-[#4a4a4a] rounded-lg shadow-xl backdrop-blur-sm pointer-events-none max-h-80 overflow-y-auto" style={{
+                    left: Math.min(mousePosition.x + 10, window.innerWidth - 400),
+                    top: Math.max(10, Math.min(mousePosition.y - 50, window.innerHeight - 320)),
+                }}>
+                    <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">关联 OKR</h4>
+                    <div className="text-xs space-y-2">
                         {projectOkrs.length > 0 ? (
                             projectOkrs.map(okr => (
                                 <div key={okr.id}>
-                                    <strong className="text-gray-600 dark:text-gray-300 block">O: {okr.objective}</strong>
+                                    <strong className="text-gray-600 dark:text-gray-300 block whitespace-pre-wrap">O: {okr.objective}</strong>
                                     <ul className="pl-3 list-disc list-inside">
                                         {okr.keyResults.filter(kr => (project.keyResultIds || []).includes(kr.id)).map(kr => (
-                                            <li key={kr.id} className="text-gray-700 dark:text-gray-400">KR: {kr.description}</li>
+                                            <li key={kr.id} className="text-gray-700 dark:text-gray-400 whitespace-pre-wrap">KR: {kr.description}</li>
                                         ))}
                                     </ul>
                                 </div>
@@ -49,6 +87,40 @@ const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project:
 
 const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers: User[] }> = ({ status, project, allUsers }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ 
+      x: e.clientX + window.scrollX, 
+      y: e.clientY + window.scrollY 
+    });
+  };
+  
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    // 添加500ms延迟，悬停后才显示弹窗
+    timeoutRef.current = setTimeout(() => {
+      setShowTooltip(true);
+    }, 500);
+  };
+  
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowTooltip(false);
+  };
+  
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
   
   const statusStyles: Record<ProjectStatus, string> = {
     [ProjectStatus.NotStarted]: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-600/50 dark:text-gray-300 dark:border-gray-500/60',
@@ -60,8 +132,9 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
     [ProjectStatus.DevDone]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/50 dark:text-yellow-300 dark:border-yellow-500/60',
     [ProjectStatus.Testing]: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-600/50 dark:text-pink-300 dark:border-pink-500/60',
     [ProjectStatus.TestDone]: 'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-600/50 dark:text-teal-300 dark:border-teal-500/60',
-    [ProjectStatus.Paused]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/50 dark:text-red-300 dark:border-red-500/60',
     [ProjectStatus.Launched]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
+    [ProjectStatus.Paused]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/50 dark:text-red-300 dark:border-red-500/60',
+    [ProjectStatus.ProjectInProgress]: 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-600/50 dark:text-violet-300 dark:border-violet-500/60',
   };
   
   const roleInfo: { key: ProjectRoleKey, name: string }[] = [
@@ -75,15 +148,19 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
     <div className="relative">
       <span 
         className={`px-2 py-0.5 text-xs font-medium rounded-full border cursor-pointer ${statusStyles[status]}`}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
       >
         {status}
       </span>
       
       {showTooltip && (
-        <div className="absolute z-[9999] top-full left-0 mt-2 w-72 p-3 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#363636] rounded-lg shadow-lg">
-          <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">团队角色与排期</h4>
+        <div className="fixed z-[10000] w-96 p-4 bg-white dark:bg-[#1a1a1a] border-2 border-gray-300 dark:border-[#4a4a4a] rounded-lg shadow-xl backdrop-blur-sm pointer-events-none max-h-80 overflow-y-auto" style={{
+            left: Math.min(mousePosition.x + 10, window.innerWidth - 400),
+            top: Math.max(10, Math.min(mousePosition.y - 50, window.innerHeight - 320)),
+        }}>
+          <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">团队角色与排期</h4>
           <div className="divide-y divide-gray-200 dark:divide-gray-600/50 text-sm">
             {roleInfo.map(({ key, name }) => {
               const team = project[key] as Role;
@@ -130,7 +207,41 @@ interface WeeklyMeetingProjectCardProps {
 
 const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) => {
     const [showTooltip, setShowTooltip] = useState(false);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const content = html || '<p class="text-gray-400 dark:text-gray-500 italic">无</p>';
+    
+    const handleMouseMove = (e: React.MouseEvent) => {
+        setMousePosition({ 
+            x: e.clientX + window.scrollX, 
+            y: e.clientY + window.scrollY 
+        });
+    };
+    
+    const handleMouseEnter = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        // 添加500ms延迟，悬停后才显示弹窗
+        timeoutRef.current = setTimeout(() => {
+            setShowTooltip(true);
+        }, 500);
+    };
+    
+    const handleMouseLeave = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setShowTooltip(false);
+    };
+    
+    React.useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
     
     return (
         <div className="relative">
@@ -138,15 +249,19 @@ const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) =
             <div
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[80px] max-h-[120px] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: content }}
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                onMouseMove={handleMouseMove}
             />
             
             {showTooltip && (
-                <div className="absolute z-[9999] top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 p-3 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#363636] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
+                <div className="fixed z-[10000] w-[420px] p-4 bg-white dark:bg-[#1a1a1a] border-2 border-gray-300 dark:border-[#4a4a4a] rounded-lg shadow-xl backdrop-blur-sm max-h-96 overflow-y-auto pointer-events-none" style={{
+                    left: Math.min(mousePosition.x + 10, window.innerWidth - 440),
+                    top: Math.max(10, Math.min(mousePosition.y - 50, window.innerHeight - 384)),
+                }}>
+                    <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">{title}</h4>
                     <div
-                        className="text-sm text-gray-800 dark:text-gray-300 weekly-update-content"
+                        className="text-sm text-gray-800 dark:text-gray-300 weekly-update-content whitespace-pre-wrap"
                         dangerouslySetInnerHTML={{ __html: content }}
                     />
                 </div>
@@ -156,6 +271,9 @@ const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) =
             <style>{`
               .weekly-update-content b { font-weight: 600; }
               .weekly-update-content font[color="#ef4444"] { color: #ef4444; }
+              .weekly-update-content p { margin-bottom: 0.5rem; }
+              .weekly-update-content br { display: block; margin: 0.25rem 0; }
+              .weekly-update-content div { margin-bottom: 0.5rem; }
             `}</style>
         </div>
     );
@@ -164,15 +282,50 @@ const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) =
 
 const BusinessProblemDisplay: React.FC<{businessProblem: string}> = ({businessProblem}) => {
     const [showTooltip, setShowTooltip] = useState(false);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const content = businessProblem || '无';
+    
+    const handleMouseMove = (e: React.MouseEvent) => {
+        setMousePosition({ 
+            x: e.clientX + window.scrollX, 
+            y: e.clientY + window.scrollY 
+        });
+    };
+    
+    const handleMouseEnter = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        // 添加500ms延迟，悬停后才显示弹窗
+        timeoutRef.current = setTimeout(() => {
+            setShowTooltip(true);
+        }, 500);
+    };
+    
+    const handleMouseLeave = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setShowTooltip(false);
+    };
+    
+    React.useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
     
     return (
         <div className="relative">
             <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">解决的业务问题</h4>
             <div 
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg text-sm text-gray-800 dark:text-gray-300 h-20 overflow-hidden cursor-pointer leading-relaxed flex items-start"
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                onMouseMove={handleMouseMove}
             >
                 <p className="whitespace-pre-wrap line-clamp-3 w-full">
                     {content === '无' ? <span className="text-gray-400 dark:text-gray-500 italic">无</span> : content}
@@ -180,9 +333,12 @@ const BusinessProblemDisplay: React.FC<{businessProblem: string}> = ({businessPr
             </div>
             
             {showTooltip && content !== '无' && (
-                <div className="absolute z-[9999] top-full left-0 mt-2 w-80 p-3 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#363636] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">解决的业务问题</h4>
-                    <p className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-wrap">{content}</p>
+                <div className="fixed z-[10000] w-[420px] p-4 bg-white dark:bg-[#1a1a1a] border-2 border-gray-300 dark:border-[#4a4a4a] rounded-lg shadow-xl backdrop-blur-sm max-h-96 overflow-y-auto pointer-events-none" style={{
+                    left: Math.min(mousePosition.x + 10, window.innerWidth - 440),
+                    top: Math.max(10, Math.min(mousePosition.y - 50, window.innerHeight - 384)),
+                }}>
+                    <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">解决的业务问题</h4>
+                    <p className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{content}</p>
                 </div>
             )}
         </div>

@@ -88,10 +88,10 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
         </div>
 
         <div className="flex-grow p-4 space-y-4 overflow-y-auto">
-          {project.comments.length === 0 ? (
+          {(project.comments || []).length === 0 ? (
             <div className="text-center text-gray-400 dark:text-gray-500 pt-10">暂无评论</div>
           ) : (
-            project.comments.map(comment => {
+            (project.comments || []).map(comment => {
               const user = getUser(comment.userId);
               return (
                 <div key={comment.id} className="flex items-start gap-3">

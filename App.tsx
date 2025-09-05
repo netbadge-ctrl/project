@@ -4,7 +4,9 @@ import { MainContent } from './components/MainContent';
 import { OKRPage } from './components/OKRPage';
 import { KanbanView } from './components/KanbanView';
 import { PersonalView } from './components/PersonalView';
+import ProjectOverview from './components/ProjectOverview';
 import { WeeklyMeetingView } from './components/WeeklyMeetingView';
+
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { RoleEditModal } from './components/RoleEditModal';
 import { CommentModal } from './components/CommentModal';
@@ -119,7 +121,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
         }
 
         const lastRolloverDate = localStorage.getItem('lastWeeklyRolloverDate');
-        const todayDateString = today.toISOString().split('T')[0];
+        const todayDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         if (lastRolloverDate === todayDateString) {
             return; // Rollover already performed today
@@ -152,7 +154,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
   const handleCreateProject = useCallback(() => {
     const newProject: Project = {
       id: `new_${Date.now()}`,
-      name: '新项目 - 点击编辑',
+      name: '',
       priority: Priority.TechOptimization,
       status: ProjectStatus.NotStarted,
       businessProblem: '',
@@ -178,8 +180,26 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     const projectToUpdate = (projects || []).find(p => p.id === projectId);
     if (!projectToUpdate) return;
     
-    if (JSON.stringify(projectToUpdate[field]) === JSON.stringify(value)) {
-        return; // Do nothing if value hasn't changed.
+    // 优化的值比较逻辑，避免昂贵的JSON.stringify
+    const oldValue = projectToUpdate[field];
+    const hasChanged = (() => {
+      // 对于基本类型，直接比较
+      if (typeof oldValue !== 'object' || oldValue === null || typeof value !== 'object' || value === null) {
+        return oldValue !== value;
+      }
+      
+      // 对于数组，比较长度和内容
+      if (Array.isArray(oldValue) && Array.isArray(value)) {
+        if (oldValue.length !== value.length) return true;
+        return oldValue.some((item, index) => JSON.stringify(item) !== JSON.stringify(value[index]));
+      }
+      
+      // 对于其他对象，使用JSON.stringify作为后备
+      return JSON.stringify(oldValue) !== JSON.stringify(value);
+    })();
+    
+    if (!hasChanged) {
+      return; // Do nothing if value hasn't changed.
     }
     
     // 移除KR关联校验限制
@@ -193,7 +213,6 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     }
 
     // Optimistic Update for existing projects
-    const oldValue = projectToUpdate[field];
     const updates: Partial<Project> = { [field]: value };
     
     const loggableFieldLabels: { [K in keyof Project]?: string } = {
@@ -215,12 +234,19 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
         const formatRoleValue = (roleValue: any): string => {
             if (!Array.isArray(roleValue)) return String(roleValue);
             
-            const roleNames = roleValue.map(member => {
+            const roleDetails = roleValue.map(member => {
                 const user = (allUsers || []).find(u => u.id === member.userId);
-                return user ? user.name : '未知用户';
+                const userName = user ? user.name : '未知用户';
+                
+                // 包含排期信息
+                if (member.startDate && member.endDate) {
+                    return `${userName}(${member.startDate}~${member.endDate})`;
+                } else {
+                    return `${userName}(未排期)`;
+                }
             });
             
-            return roleNames.length > 0 ? roleNames.join(', ') : '无';
+            return roleDetails.length > 0 ? roleDetails.join(', ') : '无';
         };
 
         const formatValue = (val: any): string => {
@@ -303,6 +329,11 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     }
   }, [fetchData]);
 
+  const handleEditProject = useCallback((project: Project) => {
+    // 打开编辑模态框或设置编辑状态
+    handleOpenModal('edit', project.id);
+  }, []);
+
   const handleOpenModal = useCallback((type: ModalType, projectId: string, details: Omit<ModalState, 'isOpen' | 'type' | 'projectId'> = {}) => {
     setModalState({ isOpen: true, type, projectId, ...details });
   }, []);
@@ -372,10 +403,11 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     const project = (projects || []).find(p => p.id === projectId);
     if (!project || !currentUser) return;
     
-    const isFollowing = project.followers.includes(currentUser.id);
+    const followers = project.followers || [];
+    const isFollowing = followers.includes(currentUser.id);
     const newFollowers = isFollowing
-        ? project.followers.filter(id => id !== currentUser.id)
-        : [...project.followers, currentUser.id];
+        ? followers.filter(id => id !== currentUser.id)
+        : [...followers, currentUser.id];
     
     await handleUpdateProject(projectId, 'followers', newFollowers);
   }, [projects, currentUser, handleUpdateProject]);
@@ -438,7 +470,26 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
                 onOpenModal={handleOpenModal}
             />
         );
+
       case 'overview':
+        return (
+          <ProjectOverview
+            projects={projects}
+            activeOkrs={activeOkrs}
+            allUsers={allUsers}
+            currentUser={currentUser}
+            editingId={editingId}
+            onCreateProject={handleCreateProject}
+            onSaveNewProject={handleSaveNewProject}
+            onUpdateProject={handleUpdateProject}
+            onDeleteProject={handleDeleteProject}
+            onCancelNewProject={handleCancelNewProject}
+            onOpenModal={handleOpenModal}
+            onToggleFollow={handleToggleFollow}
+            onAddComment={handleAddComment}
+            onEditProject={handleEditProject}
+          />
+        );
       default:
         return (
           <MainContent

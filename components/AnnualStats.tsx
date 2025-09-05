@@ -74,7 +74,6 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
         });
 
         return {
-            annualCount: annualProjects.length,
             launchedCount: launchedProjects.length,
             ongoingOkrCount: ongoingOkrProjects.length,
             launchedOkrCount: launchedOkrProjects.length,
@@ -82,13 +81,7 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
     }, [projects, activeOkrs, currentUser]);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard 
-                icon={<IconBriefcase className="w-6 h-6"/>}
-                title="年度参与项目"
-                value={stats.annualCount}
-                colorClasses="bg-blue-500 text-white"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatCard 
                 icon={<IconRocket className="w-6 h-6"/>}
                 title="年度上线项目"

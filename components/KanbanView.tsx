@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { Project, User, OKR } from '../types';
 import { KanbanFilterBar } from './KanbanFilterBar';
 import { KanbanTimelineControls } from './KanbanTimelineControls';
+import { useFilterState } from '../context/FilterStateContext';
 
 // --- Date Helper Functions ---
 
@@ -63,12 +64,27 @@ const projectColors = [
 ];
 
 export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, activeOkrs }) => {
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
-  const [selectedKrIds, setSelectedKrIds] = useState<string[]>([]);
-  
-  const [granularity, setGranularity] = useState<'week' | 'month'>('month');
-  const [viewDate, setViewDate] = useState(new Date());
+  // 使用新的状态管理系统
+  const { state, updateKanbanViewFilters } = useFilterState();
+  const filters = state.kanbanView;
+
+  // 本地状态处理函数
+  const setSelectedUserIds = (value: string[]) => updateKanbanViewFilters({ selectedUserIds: value });
+  const setSelectedProjectIds = (value: string[]) => updateKanbanViewFilters({ selectedProjectIds: value });
+  const setSelectedKrIds = (value: string[]) => updateKanbanViewFilters({ selectedKrIds: value });
+  const setSelectedStatuses = (value: string[]) => updateKanbanViewFilters({ selectedStatuses: value });
+  const setSelectedPriorities = (value: string[]) => updateKanbanViewFilters({ selectedPriorities: value });
+  const setGranularity = (value: 'week' | 'month') => updateKanbanViewFilters({ granularity: value });
+  const setViewDate = (value: Date) => updateKanbanViewFilters({ viewDate: value.toISOString() });
+
+  // 从状态中获取当前值
+  const selectedUserIds = filters.selectedUserIds;
+  const selectedProjectIds = filters.selectedProjectIds;
+  const selectedKrIds = filters.selectedKrIds;
+  const selectedStatuses = filters.selectedStatuses;
+  const selectedPriorities = filters.selectedPriorities;
+  const granularity = filters.granularity;
+  const viewDate = new Date(filters.viewDate);
 
 
   const timeline = useMemo(() => {
@@ -143,6 +159,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
         const projectSet = new Set(selectedProjectIds);
         filteredProjects = filteredProjects.filter(p => projectSet.has(p.id));
     }
+    if (selectedStatuses.length > 0) {
+        const statusSet = new Set(selectedStatuses);
+        filteredProjects = filteredProjects.filter(p => statusSet.has(p.status));
+    }
+    if (selectedPriorities.length > 0) {
+        const prioritySet = new Set(selectedPriorities);
+        filteredProjects = filteredProjects.filter(p => prioritySet.has(p.priority));
+    }
     const relevantProjects = filteredProjects;
 
     let filteredUsers = allUsers || [];
@@ -204,7 +228,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
       
       return { ...user, schedule: scheduleWithLanes, maxLanes: lanes.length };
     });
-  }, [projects, allUsers, selectedUserIds, selectedProjectIds, selectedKrIds]);
+  }, [projects, allUsers, selectedUserIds, selectedProjectIds, selectedKrIds, selectedStatuses, selectedPriorities]);
 
 
   return (
@@ -220,6 +244,10 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
             setSelectedProjects={setSelectedProjectIds}
             selectedKrs={selectedKrIds}
             setSelectedKrs={setSelectedKrIds}
+            selectedStatuses={selectedStatuses}
+            setSelectedStatuses={setSelectedStatuses}
+            selectedPriorities={selectedPriorities}
+            setSelectedPriorities={setSelectedPriorities}
         />
         <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl flex-grow overflow-x-auto">
           <div className="min-w-[1200px]">

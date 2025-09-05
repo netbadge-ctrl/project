@@ -79,6 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, currentUser }) 
             onClick={() => setView('overview')}
             collapsed={collapsed}
           />
+
           <NavItem
             icon={<IconBarChart className={`${collapsed ? 'w-7 h-7' : 'w-6 h-6'}`} />}
             label="OKR"

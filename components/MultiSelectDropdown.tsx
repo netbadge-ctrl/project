@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { IconChevronDown, IconSearch } from './Icons';
 import { fuzzySearch } from '../utils';
 
@@ -29,8 +29,10 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -44,19 +46,37 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         };
     }, []);
 
+    // 防抖搜索词更新
+    useEffect(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        
+        debounceTimerRef.current = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 200);
+        
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [searchTerm]);
+
     useEffect(() => {
         if (isOpen) {
             setSearchTerm('');
+            setDebouncedSearchTerm('');
             setTimeout(() => searchInputRef.current?.focus(), 100);
         }
     }, [isOpen]);
 
-    const handleToggleOption = (value: string) => {
+    const handleToggleOption = useCallback((value: string) => {
         const newSelectedValues = selectedValues.includes(value)
             ? selectedValues.filter(v => v !== value)
             : [...selectedValues, value];
         onSelectionChange(newSelectedValues);
-    };
+    }, [selectedValues, onSelectionChange]);
 
     const displayLabel = selectedValues.length > 0 
         ? `${placeholder} (${selectedValues.length})`
@@ -67,7 +87,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
             const filteredGroups = groupedOptions
                 .map(group => ({
                     ...group,
-                    options: group.options.filter(option => fuzzySearch(searchTerm, option.label))
+                    options: group.options.filter(option => fuzzySearch(debouncedSearchTerm, option.label))
                 }))
                 .filter(group => group.options.length > 0);
             
@@ -78,20 +98,19 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         }
         
         const filtered = options
-            .filter(option => fuzzySearch(searchTerm, option.label))
-            .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'));
+            .filter(option => fuzzySearch(debouncedSearchTerm, option.label));
         return {
             flatFilteredOptions: filtered,
             filteredGroupedOptions: null
         };
-    }, [options, groupedOptions, searchTerm]);
+    }, [options, groupedOptions, debouncedSearchTerm]);
 
     const areAllFilteredSelected = useMemo(() => {
         if (flatFilteredOptions.length === 0) return false;
         return flatFilteredOptions.every(o => selectedValues.includes(o.value));
     }, [flatFilteredOptions, selectedValues]);
 
-    const handleToggleAll = () => {
+    const handleToggleAll = useCallback(() => {
         const allFilteredValues = flatFilteredOptions.map(o => o.value);
         if (areAllFilteredSelected) {
             // Deselect all filtered
@@ -101,7 +120,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
             // Select all filtered
             onSelectionChange([...new Set([...selectedValues, ...allFilteredValues])]);
         }
-    };
+    }, [flatFilteredOptions, areAllFilteredSelected, selectedValues, onSelectionChange]);
     
     const renderOption = (option: Option) => {
         const isSelected = selectedValues.includes(option.value);
@@ -166,7 +185,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                 )}
             </button>
             {isOpen && (
-                <div className="absolute top-full mt-2 w-80 bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-xl shadow-2xl z-50 flex flex-col max-h-[70vh] min-h-[200px] right-0">
+                <div className="absolute top-full mt-2 w-80 bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-xl shadow-2xl z-[9999] flex flex-col max-h-[70vh] min-h-[200px] left-0">
                     {/* 搜索区域 */}
                     <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#232323] rounded-t-xl">
                         <div className="relative">

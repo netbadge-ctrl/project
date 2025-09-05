@@ -1,7 +1,8 @@
 import { Project, User, OkrSet } from './types';
+import { appConfig } from './config/env';
 
-// 后端API基础URL
-const API_BASE_URL = 'http://120.92.36.175:9000/api';
+// 后端API基础URL - 根据环境配置动态设置
+const API_BASE_URL = appConfig.apiBaseUrl;
 
 // 通用的API请求函数
 const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {

@@ -10,8 +10,16 @@ type Config struct {
 }
 
 func Load() *Config {
+	// 数据库始终连接线上环境
+	databaseURL := "postgresql://admin:Kingsoft0531@120.92.44.85:51022/project_codebuddy?sslmode=disable"
+
+	// 如果显式设置了DATABASE_URL环境变量，则使用它
+	if envURL := os.Getenv("DATABASE_URL"); envURL != "" {
+		databaseURL = envURL
+	}
+
 	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", "postgresql://admin:Kingsoft0531@120.92.44.85:51022/project_codebuddy?sslmode=disable"),
+		DatabaseURL: databaseURL,
 		Port:        getEnv("PORT", "9000"),
 	}
 }

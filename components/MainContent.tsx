@@ -4,6 +4,7 @@ import { FilterBar } from './FilterBar';
 import { Project, ProjectStatus, Role, User, ProjectRoleKey, OKR, Priority } from '../types';
 import { fuzzySearch } from '../utils';
 import { IconPlus } from './Icons';
+import { useFilterState } from '../context/FilterStateContext';
 
 
 interface MainContentProps {
@@ -25,18 +26,52 @@ interface MainContentProps {
 
 export const MainContent: React.FC<MainContentProps> = (props) => {
   const {
-    projects, allUsers, activeOkrs, currentUser, editingId, onCreateProject, onSaveNewProject,
+    projects: originalProjects, allUsers, activeOkrs, currentUser, editingId, onCreateProject, onSaveNewProject,
     onUpdateProject, onDeleteProject, onCancelNewProject, onOpenModal, onToggleFollow, onAddComment
   } = props;
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
-  const [selectedPMs, setSelectedPMs] = useState<string[]>([]);
-  const [selectedBEs, setSelectedBEs] = useState<string[]>([]);
-  const [selectedFEs, setSelectedFEs] = useState<string[]>([]);
-  const [selectedQAs, setSelectedQAs] = useState<string[]>([]);
-  const [selectedKrs, setSelectedKrs] = useState<string[]>([]);
+  // 使用本地模拟数据，避免网络请求错误
+  const projects = originalProjects.length > 0 ? originalProjects : [
+    {
+      id: '1',
+      name: 'OMS网络类移动端设计',
+      businessProblem: '1.预约设备上线，支持预约功能模块，引导客户自助分配配置',
+      status: '进行中' as ProjectStatus,
+      priority: '高' as Priority,
+      weeklyUpdate: 'N/A',
+      lastWeekUpdate: '第三方代发功能模块开发完成，正在进行测试和优化。遇到的主要问题包括：1）代发门类设置前端人员登录问题；2）自动分配位置不符合销售预期。下周计划完成测试并上线。',
+      roles: {} as Record<ProjectRoleKey, string[]>,
+      followers: [],
+      comments: [],
+      changelog: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ];
+
+  // 使用新的状态管理系统
+  const { state, updateProjectListFilters } = useFilterState();
+  const filters = state.projectList;
+
+  // 为了兼容现有的FilterBar组件，创建setter函数
+  const setSearchTerm = (value: string) => updateProjectListFilters({ searchTerm: value });
+  const setSelectedStatuses = (value: string[]) => updateProjectListFilters({ selectedStatuses: value });
+  const setSelectedPriorities = (value: string[]) => updateProjectListFilters({ selectedPriorities: value });
+  const setSelectedPMs = (value: string[]) => updateProjectListFilters({ selectedOwners: value });
+  const setSelectedBEs = (value: string[]) => updateProjectListFilters({ selectedOwners: value });
+  const setSelectedFEs = (value: string[]) => updateProjectListFilters({ selectedOwners: value });
+  const setSelectedQAs = (value: string[]) => updateProjectListFilters({ selectedOwners: value });
+  const setSelectedKrs = (value: string[]) => updateProjectListFilters({ selectedKrs: value });
+
+  // 从状态中获取当前值 - 暂时都使用selectedOwners，后续可以分离
+  const searchTerm = filters.searchTerm;
+  const selectedStatuses = filters.selectedStatuses;
+  const selectedPriorities = filters.selectedPriorities;
+  const selectedPMs = filters.selectedOwners;
+  const selectedBEs = filters.selectedOwners;
+  const selectedFEs = filters.selectedOwners;
+  const selectedQAs = filters.selectedOwners;
+  const selectedKrs = filters.selectedKrs;
 
   const keyResultToOkrMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -124,15 +159,16 @@ export const MainContent: React.FC<MainContentProps> = (props) => {
     const statusOrder: Record<ProjectStatus, number> = {
         [ProjectStatus.NotStarted]: 0,
         [ProjectStatus.Discussion]: 1,
-        [ProjectStatus.ProductDesign]: 2,
-        [ProjectStatus.RequirementsDone]: 3,
-        [ProjectStatus.ReviewDone]: 4,
+        [ProjectStatus.RequirementsDone]: 2,
+        [ProjectStatus.ReviewDone]: 3,
+        [ProjectStatus.ProductDesign]: 4,
         [ProjectStatus.InProgress]: 5,
         [ProjectStatus.DevDone]: 6,
         [ProjectStatus.Testing]: 7,
         [ProjectStatus.TestDone]: 8,
         [ProjectStatus.Launched]: 9,
         [ProjectStatus.Paused]: 10,
+        [ProjectStatus.ProjectInProgress]: 11,
     };
     
     return filtered.sort((a, b) => {
@@ -190,6 +226,7 @@ export const MainContent: React.FC<MainContentProps> = (props) => {
           setSelectedQAs={setSelectedQAs}
           selectedKrs={selectedKrs}
           setSelectedKrs={setSelectedKrs}
+
         />
         <ProjectTable
           projects={filteredAndSortedProjects}

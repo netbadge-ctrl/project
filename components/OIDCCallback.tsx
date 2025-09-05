@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
+import { appConfig } from '../config/env';
 
 const OIDC_CONFIG = {
-    clientId: 'codebuddy',
-    clientSecret: 'e11cda4fdd2f6d24cce9b97feeadd4b4',
-    provider: 'https://oidc-public.ksyun.com:443',
-    redirectUri: 'http://120.92.36.175:5173/oidc-callback',
+    ...appConfig.oidc,
     // 可能需要使用不同的token endpoint
     tokenEndpoint: 'https://oidc-public.ksyun.com:443/token'
 };
@@ -37,7 +35,7 @@ const OIDCCallback: React.FC = () => {
                 console.log('Starting token exchange with code:', code);
                 
                 // 通过后端API交换授权码获取token
-                const tokenResponse = await fetch('http://120.92.36.175:9000/api/oidc-token', {
+                const tokenResponse = await fetch(`${appConfig.apiBaseUrl}/oidc-token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -83,7 +81,7 @@ const OIDCCallback: React.FC = () => {
                     } else {
                         // 备用方案：通过API查找用户并保存
                         try {
-                            const usersResponse = await fetch('http://120.92.36.175:9000/api/users');
+                            const usersResponse = await fetch(`${appConfig.apiBaseUrl}/users`);
                             const users = await usersResponse.json();
                             const dbUser = users.find((u: any) => u.email.toLowerCase() === userInfo.email.toLowerCase());
                             

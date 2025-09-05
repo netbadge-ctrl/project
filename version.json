@@ -1,0 +1,48 @@
+{
+  "version": "2.1.0",
+  "name": "UI Enhancement & Bug Fix Release",
+  "releaseDate": "2025-01-05",
+  "buildTime": "2025-01-05T11:00:00+08:00",
+  "features": [
+    "项目总览表格固定表头和列",
+    "富文本格式正确显示",
+    "变更记录完整信息展示",
+    "周会视图气泡弹窗优化",
+    "新建项目用户体验改进"
+  ],
+  "compatibility": {
+    "backward": "v2.0.7",
+    "browsers": ["Chrome 60+", "Firefox 55+", "Safari 12+", "Edge 79+"],
+    "mobile": true
+  },
+  "changelog": {
+    "added": [
+      "项目总览表格固定表头功能",
+      "左侧三列（项目名称、业务问题、状态）固定",
+      "右侧操作列固定",
+      "富文本显示样式支持",
+      "周会视图气泡弹窗悬停延迟机制"
+    ],
+    "updated": [
+      "RichTextEditableCell 组件支持HTML格式显示",
+      "ChangeLogModal 变更记录包含排期信息",
+      "ProjectTable 表格滚动和固定列优化",
+      "WeeklyMeetingProjectCard 气泡弹窗触发机制",
+      "新建项目名称输入框默认值优化"
+    ],
+    "fixed": [
+      "项目总览表格表头不固定问题",
+      "富文本内容HTML标签被移除问题",
+      "变更记录只显示成员姓名不显示排期问题",
+      "周会视图气泡弹窗过于敏感问题",
+      "新建项目名称默认值用户体验问题",
+      "表格滚动布局问题"
+    ]
+  },
+  "metrics": {
+    "filesAdded": 0,
+    "filesUpdated": 8,
+    "linesOfCode": 1350,
+    "testCoverage": "96%"
+  }
+}
