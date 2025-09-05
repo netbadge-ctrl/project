@@ -155,7 +155,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     const newProject: Project = {
       id: `new_${Date.now()}`,
       name: '',
-      priority: Priority.TechOptimization,
+      priority: Priority.LowPriority,
       status: ProjectStatus.NotStarted,
       businessProblem: '',
       keyResultIds: [],

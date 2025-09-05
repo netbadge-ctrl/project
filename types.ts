@@ -33,10 +33,10 @@ export enum ProjectStatus {
 }
 
 export enum Priority {
-    DeptOKR = '部门OKR相关',
-    CompanyOKR = '公司OKR相关',
-    BusinessRequirement = '业务需求',
-    TechOptimization = '技术优化',
+    DeptOKR = '部门OKR',
+    PersonalOKR = '个人OKR',
+    UrgentRequirement = '临时重要需求',
+    LowPriority = '不重要的需求',
 }
 
 export interface KeyResult {

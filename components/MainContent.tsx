@@ -151,9 +151,9 @@ export const MainContent: React.FC<MainContentProps> = (props) => {
 
     const priorityOrder: Record<Priority, number> = {
         [Priority.DeptOKR]: 0,
-        [Priority.CompanyOKR]: 1,
-        [Priority.BusinessRequirement]: 2,
-        [Priority.TechOptimization]: 3,
+        [Priority.PersonalOKR]: 1,
+        [Priority.UrgentRequirement]: 2,
+        [Priority.LowPriority]: 3,
     };
 
     const statusOrder: Record<ProjectStatus, number> = {

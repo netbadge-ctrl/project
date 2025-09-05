@@ -64,28 +64,76 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const selectedParticipants = filters.selectedParticipants || [];
   const selectedKrs = filters.selectedKrs || [];
 
-  const filteredProjects = projects.filter(project => {
-    // 新建的项目（处于编辑状态）始终显示，不受筛选条件影响
-    if (editingId && project.id === editingId) {
-      return true;
-    }
-    
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (project.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (project.businessProblem || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(project.status);
-    const matchesPriority = selectedPriorities.length === 0 || selectedPriorities.includes(project.priority);
-    const matchesParticipant = selectedParticipants.length === 0 || selectedParticipants.some(participantId => {
-      const roles = ['productManagers', 'backendDevelopers', 'frontendDevelopers', 'qaTesters'];
-      return roles.some(role => 
-        (project[role as keyof Project] as any[] || []).some((member: any) => member.userId === participantId)
-      );
-    });
-    const matchesKr = selectedKrs.length === 0 || 
-                     (project.keyResultIds || []).some(krId => selectedKrs.includes(krId));
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesParticipant && matchesKr;
+  // 排序状态
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: 'createdAt',
+    direction: 'desc'
   });
+
+  // 排序函数
+  const handleSort = (field: SortField) => {
+    setSortConfig(prevConfig => ({
+      field,
+      direction: prevConfig.field === field && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // 筛选和排序项目
+  const filteredAndSortedProjects = useMemo(() => {
+    // 首先筛选项目
+    const filtered = projects.filter(project => {
+      // 新建的项目（处于编辑状态）始终显示，不受筛选条件影响
+      if (editingId && project.id === editingId) {
+        return true;
+      }
+      
+      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (project.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (project.businessProblem || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(project.status);
+      const matchesPriority = selectedPriorities.length === 0 || selectedPriorities.includes(project.priority);
+      const matchesParticipant = selectedParticipants.length === 0 || selectedParticipants.some(participantId => {
+        const roles = ['productManagers', 'backendDevelopers', 'frontendDevelopers', 'qaTesters'];
+        return roles.some(role => 
+          (project[role as keyof Project] as any[] || []).some((member: any) => member.userId === participantId)
+        );
+      });
+      const matchesKr = selectedKrs.length === 0 || 
+                       (project.keyResultIds || []).some(krId => selectedKrs.includes(krId));
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesParticipant && matchesKr;
+    });
+
+    // 然后排序项目
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortConfig.field) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'zh-CN');
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status, 'zh-CN');
+          break;
+        case 'priority':
+          // 优先级排序：部门OKR > 个人OKR > 临时重要需求 > 不重要的需求
+          const priorityOrder = { '部门OKR': 0, '个人OKR': 1, '临时重要需求': 2, '不重要的需求': 3 };
+          const aOrder = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 999;
+          const bOrder = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 999;
+          comparison = aOrder - bOrder;
+          break;
+        case 'createdAt':
+        default:
+          // 按创建时间排序，使用proposedDate作为创建时间
+          const aTime = a.proposedDate ? new Date(a.proposedDate).getTime() : 0;
+          const bTime = b.proposedDate ? new Date(b.proposedDate).getTime() : 0;
+          comparison = bTime - aTime; // 默认倒序（最新的在前）
+          break;
+      }
+      
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [projects, searchTerm, selectedStatuses, selectedPriorities, selectedParticipants, selectedKrs, editingId, sortConfig]);
 
   // 准备筛选选项
   const statusOptions = Object.values(ProjectStatus).map(status => ({ value: status, label: status }));
@@ -143,7 +191,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       {/* 表格区域 */}
       <div className="flex-1 px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 overflow-hidden">
         <ProjectTable
-          projects={filteredProjects}
+          projects={filteredAndSortedProjects}
           allUsers={allUsers}
           activeOkrs={activeOkrs}
           currentUser={currentUser}
@@ -155,6 +203,8 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           onOpenModal={onOpenModal}
           onToggleFollow={onToggleFollow}
           onCreateProject={onCreateProject}
+          sortConfig={sortConfig}
+          onSort={handleSort}
         />
       </div>
     </main>

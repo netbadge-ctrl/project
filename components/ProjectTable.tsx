@@ -16,6 +16,14 @@ import { useDropdownPosition } from '../hooks/useDropdownPosition';
 import KRSelectionModal from './KRSelectionModal';
 import { formatDateOnly } from '../utils';
 
+type SortField = 'name' | 'status' | 'priority' | 'createdAt';
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}
+
 interface ProjectTableProps {
   projects: Project[];
   allUsers: User[];
@@ -29,6 +37,8 @@ interface ProjectTableProps {
   onOpenModal: (type: 'role' | 'comments' | 'changelog', projectId: string, details?: any) => void;
   onToggleFollow: (projectId: string) => void;
   onCreateProject: () => void;
+  sortConfig?: SortConfig;
+  onSort?: (field: SortField) => void;
 }
 
 const tableHeaders = [
@@ -60,8 +70,8 @@ const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
     const priorityStyles: Record<Priority, string> = {
         [Priority.DeptOKR]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/70 dark:text-red-200 dark:border-red-500/80',
         [Priority.PersonalOKR]: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-600/70 dark:text-orange-200 dark:border-orange-500/80',
-        [Priority.Urgent]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/70 dark:text-yellow-200 dark:border-yellow-500/80',
-        [Priority.Routine]: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-600/70 dark:text-blue-200 dark:border-blue-500/80',
+        [Priority.UrgentRequirement]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/70 dark:text-yellow-200 dark:border-yellow-500/80',
+        [Priority.LowPriority]: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-600/70 dark:text-blue-200 dark:border-blue-500/80',
     }
     return (
       <span className={`px-2.5 py-1 text-xs font-semibold rounded-md border whitespace-nowrap ${priorityStyles[priority]}`}>
@@ -622,7 +632,7 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
 ProjectRow.displayName = 'ProjectRow';
 
 
-export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, activeOkrs, currentUser, editingId, onSaveNewProject, onUpdateProject, onDeleteProject, onCancelNewProject, onOpenModal, onToggleFollow, onCreateProject }) => {
+export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, activeOkrs, currentUser, editingId, onSaveNewProject, onUpdateProject, onDeleteProject, onCancelNewProject, onOpenModal, onToggleFollow, onCreateProject, sortConfig, onSort }) => {
   const columnStyles = useMemo(() => {
     const leftOffsets: number[] = [0];
     for (let i = 0; i < leftStickyColumnCount - 1; i++) {
@@ -713,25 +723,59 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
         <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
           <thead className="sticky top-0 z-20">
             <tr>
-              {tableHeaders.map((header, index) => (
-                <th key={header.key} style={getThStyle(index)} className={getThClassName(index)}>
-                  {header.key === 'name' ? (
-                    <div className="flex items-center justify-between">
-                      <span>{header.label}</span>
-                      <button
-                        onClick={onCreateProject}
-                        className="ml-3 flex items-center gap-1.5 px-2.5 py-1.5 bg-[#6C63FF] text-white rounded-md text-xs font-medium hover:bg-[#5a52d9] transition-all duration-200 shadow-sm hover:shadow-md"
-                        title="创建新项目"
+              {tableHeaders.map((header, index) => {
+                const isSortable = ['name', 'status', 'priority'].includes(header.key);
+                const isActive = sortConfig?.field === header.key;
+                const sortDirection = isActive ? sortConfig.direction : null;
+                
+                return (
+                  <th key={header.key} style={getThStyle(index)} className={getThClassName(index)}>
+                    {header.key === 'name' ? (
+                      <div className="flex items-center justify-between">
+                        <div 
+                          className={`flex items-center gap-1 ${isSortable && onSort ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''}`}
+                          onClick={() => isSortable && onSort && onSort(header.key as SortField)}
+                        >
+                          <span>{header.label}</span>
+                          {isSortable && onSort && (
+                            <span className="text-xs">
+                              {isActive ? (
+                                sortDirection === 'asc' ? '↑' : '↓'
+                              ) : (
+                                '↕'
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={onCreateProject}
+                          className="ml-3 flex items-center gap-1.5 px-2.5 py-1.5 bg-[#6C63FF] text-white rounded-md text-xs font-medium hover:bg-[#5a52d9] transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="创建新项目"
+                        >
+                          <IconPlus className="w-3.5 h-3.5" />
+                          <span>新建</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`flex items-center gap-1 ${isSortable && onSort ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''}`}
+                        onClick={() => isSortable && onSort && onSort(header.key as SortField)}
                       >
-                        <IconPlus className="w-3.5 h-3.5" />
-                        <span>新建</span>
-                      </button>
-                    </div>
-                  ) : (
-                    header.label
-                  )}
-                </th>
-              ))}
+                        <span>{header.label}</span>
+                        {isSortable && onSort && (
+                          <span className="text-xs">
+                            {isActive ? (
+                              sortDirection === 'asc' ? '↑' : '↓'
+                            ) : (
+                              '↕'
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-[#363636]">

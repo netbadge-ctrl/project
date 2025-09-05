@@ -187,7 +187,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p3',
     name: '管理后台 V2.0',
-    priority: Priority.BusinessRequirement,
+    priority: Priority.UrgentRequirement,
     businessProblem: '旧版后台操作繁琐，功能缺失，运营效率低下。',
     keyResultIds: ['kr3_1'],
     weeklyUpdate: '需求评审阶段，部分原型图已出。',
@@ -209,7 +209,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p4',
     name: 'AI智能客服机器人',
-    priority: Priority.CompanyOKR,
+    priority: Priority.PersonalOKR,
     businessProblem: '客服人力成本高，响应速度慢，需要引入AI提升效率和用户满意度。',
     keyResultIds: ['kr3_2'],
     weeklyUpdate: '核心意图识别模块开发完成，准确率达到85%。正在进行多轮对话逻辑的开发。',
@@ -273,7 +273,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p6',
     name: '官网2024版改版',
-    priority: Priority.TechOptimization,
+    priority: Priority.LowPriority,
     businessProblem: '旧版官网风格陈旧，无法体现公司新品牌形象，且移动端体验差。',
     keyResultIds: ['kr1_2'],
     weeklyUpdate: '后端接口开发完成，前端正在集成。',
@@ -303,7 +303,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'p7',
     name: '测试项目',
-    priority: Priority.BusinessRequirement,
+    priority: Priority.UrgentRequirement,
     businessProblem: '这是一个用于测试排期时间功能的项目，需要验证日期选择和显示的准确性。',
     keyResultIds: ['kr1_1'],
     weeklyUpdate: '项目排期时间已修正，当前进度正常。',

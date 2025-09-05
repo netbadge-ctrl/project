@@ -76,9 +76,9 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
         // 3. Sorting
         const priorityOrder: Record<Priority, number> = {
             [Priority.DeptOKR]: 0,
-            [Priority.CompanyOKR]: 1,
-            [Priority.BusinessRequirement]: 2,
-            [Priority.TechOptimization]: 3,
+            [Priority.PersonalOKR]: 1,
+            [Priority.UrgentRequirement]: 2,
+            [Priority.LowPriority]: 3,
         };
         
         return filteredProjects.sort((a, b) => {
