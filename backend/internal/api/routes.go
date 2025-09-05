@@ -9,6 +9,8 @@ import (
 )
 
 func SetupRouter(db *sql.DB) *gin.Engine {
+	// 强制使用 IPv4
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
 	// 配置CORS
