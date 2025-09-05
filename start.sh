@@ -68,11 +68,15 @@ echo "启动前端服务..."
 # 安装依赖（如果需要）
 npm install
 
-# 构建前端项目
-npm run build
+# 设置生产环境变量
+export VITE_APP_ENV=production
+export VITE_API_BASE_URL=http://120.92.44.85:9000/api
+export VITE_FRONTEND_URL=http://120.92.44.85:5173
+export VITE_ENABLE_OIDC=true
+export VITE_MOCK_USER_ID=
 
-# 启动前端服务并记录 PID
-nohup npm run preview > frontend.log 2>&1 &
+# 启动前端服务（使用开发模式以保持兼容性）
+nohup npm run dev > frontend.log 2>&1 &
 echo $! > frontend.pid
 
 echo "部署完成！"
