@@ -36,7 +36,7 @@ export const appConfig: AppConfig = {
     clientId: 'codebuddy',
     clientSecret: 'e11cda4fdd2f6d24cce9b97feeadd4b4',
     provider: 'https://oidc-public.ksyun.com:443',
-    redirectUri: `${getEnvVar('VITE_FRONTEND_URL', 'http://120.92.44.85:5173')}/oidc-callback`,
+    redirectUri: `${getEnvVar('VITE_FRONTEND_URL', 'http://localhost:5173')}/oidc-callback`,
     scopes: ['openid', 'profile', 'email', 'groups', 'departments', 'skip_session']
   }
 };
