@@ -24,8 +24,9 @@ func main() {
 
 	// 启动 API 服务器
 	router := api.SetupRouter(db)
-	log.Printf("Server starting on port %s", cfg.Port)
-	if err := router.Run(":" + cfg.Port); err != nil {
+	log.Printf("Server starting on 0.0.0.0:%s", cfg.Port)
+	log.Printf("Health check: http://0.0.0.0:%s/health", cfg.Port)
+	if err := router.Run("0.0.0.0:" + cfg.Port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
