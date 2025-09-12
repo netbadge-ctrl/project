@@ -27,6 +27,29 @@
   max-height: 500px;
 }
 
+/* 强制为所有表格单元格添加底部边框 */
+table td {
+  border-bottom: 1px solid rgb(229 231 235) !important;
+}
+
+.dark table td {
+  border-bottom: 1px solid rgb(54 54 54) !important;
+}
+
+/* 确保锁定列也有边框 */
+table td[style*="position: sticky"] {
+  border-bottom: 1px solid rgb(229 231 235) !important;
+}
+
+.dark table td[style*="position: sticky"] {
+  border-bottom: 1px solid rgb(54 54 54) !important;
+}
+
+/* 防止状态和优先级列折行 */
+.status-cell, .priority-cell {
+  white-space: nowrap !important;
+}
+
 /* 周会视图网格布局 - 强制等宽分布 */
 .weekly-meeting-grid {
   display: grid;

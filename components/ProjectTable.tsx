@@ -58,7 +58,7 @@ const tableHeaders = [
     { key: 'actions', label: '操作', width: '100px' }
 ];
 
-const commonTdClass = "px-4 py-2 text-sm text-gray-700 dark:text-gray-300 align-middle";
+const commonTdClass = "px-4 py-2 text-sm text-gray-700 dark:text-gray-300 align-middle border-b border-gray-200 dark:border-[#363636]";
 const editInputClass = "bg-white dark:bg-[#2d2d2d] border border-gray-300 dark:border-[#4a4a4a] rounded-md px-2 py-1.5 w-full text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]";
 const editTextAreaClass = `${editInputClass} min-h-[80px] whitespace-pre-wrap resize-y`;
 
@@ -582,10 +582,17 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
   
   const isKrInvalid = false; // 移除KR关联校验限制
 
+  const getTdStyle = (index: number): React.CSSProperties => {
+      const style = { ...columnStyles[index] };
+      // 强制添加底部边框，确保显示
+      style.borderBottom = '1px solid rgb(229 231 235)'; // gray-200
+      return style;
+  };
+
   if (project.isNew) {
     return (
-      <tr className="bg-indigo-50 dark:bg-[#2a2a2a]/50 border-b border-gray-200 dark:border-[#363636] relative">
-        <td style={columnStyles[0]} className={getTdClassName(0, true)}>
+      <tr className="bg-indigo-50 dark:bg-[#2a2a2a]/50 relative">
+        <td style={getTdStyle(0)} className={getTdClassName(0, true)}>
           <AutoResizeInput
             value={localProject.name}
             onChange={(val) => handleUpdateField('name', val)}
@@ -595,7 +602,7 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
             maxRows={3}
           />
         </td>
-        <td style={columnStyles[1]} className={getTdClassName(1, true)}>
+        <td style={getTdStyle(1)} className={getTdClassName(1, true)}>
           <AutoResizeTextarea
             value={localProject.businessProblem}
             onChange={(val) => handleUpdateField('businessProblem', val)}
@@ -605,21 +612,21 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
             maxRows={8}
           />
         </td>
-        <td style={columnStyles[2]} className={getTdClassName(2, true)}><InlineSelect value={localProject.status} onSave={(v) => handleUpdateField('status', v)} options={Object.values(ProjectStatus).map(s => ({value: s, label: s}))} placeholder="选择状态" /></td>
-        <td style={columnStyles[3]} className={getTdClassName(3, true)}><InlineSelect value={localProject.priority} onSave={(v) => handleUpdateField('priority', v)} options={Object.values(Priority).map(p => ({value: p, label: p}))} placeholder="选择优先级" /></td>
-        <td style={columnStyles[4]} className={getTdClassName(4, true)}><OkrMultiSelectCell selectedKrIds={localProject.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
-        <td style={columnStyles[5]} className={getTdClassName(5, true)}><RichTextInput html={localProject.weeklyUpdate} onChange={(val) => handleUpdateField('weeklyUpdate', val)} placeholder="本周进展/问题" /></td>
-        <td style={columnStyles[6]} className={getTdClassName(6, true)}><div className="p-1.5 text-gray-400 dark:text-gray-500">上周无记录</div></td>
+        <td style={getTdStyle(2)} className={getTdClassName(2, true)}><InlineSelect value={localProject.status} onSave={(v) => handleUpdateField('status', v)} options={Object.values(ProjectStatus).map(s => ({value: s, label: s}))} placeholder="选择状态" /></td>
+        <td style={getTdStyle(3)} className={getTdClassName(3, true)}><InlineSelect value={localProject.priority} onSave={(v) => handleUpdateField('priority', v)} options={Object.values(Priority).map(p => ({value: p, label: p}))} placeholder="选择优先级" /></td>
+        <td style={getTdStyle(4)} className={getTdClassName(4, true)}><OkrMultiSelectCell selectedKrIds={localProject.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
+        <td style={getTdStyle(5)} className={getTdClassName(5, true)}><RichTextInput html={localProject.weeklyUpdate} onChange={(val) => handleUpdateField('weeklyUpdate', val)} placeholder="本周进展/问题" /></td>
+        <td style={getTdStyle(6)} className={getTdClassName(6, true)}><div className="p-1.5 text-gray-400 dark:text-gray-500">上周无记录</div></td>
         
         {roleInfo.map(({ key, name }, index) => (
-          <td key={key} style={columnStyles[7 + index]} className={getTdClassName(7 + index, true)}>
+          <td key={key} style={getTdStyle(7 + index)} className={getTdClassName(7 + index, true)}>
              <RoleCell team={localProject[key] as Role} allUsers={allUsers} onClick={() => handleOpenRoleModal(key, name)} />
           </td>
         ))}
 
-        <td style={columnStyles[11]} className={getTdClassName(11, true)}><DatePicker selectedDate={localProject.proposedDate} onSelectDate={(val) => handleUpdateField('proposedDate', val)} /></td>
-        <td style={columnStyles[12]} className={getTdClassName(12, true)}><DatePicker selectedDate={localProject.launchDate} onSelectDate={(val) => handleUpdateField('launchDate', val)} align="right" /></td>
-        <td style={columnStyles[13]} className={getTdClassName(13, true)}>
+        <td style={getTdStyle(11)} className={getTdClassName(11, true)}><DatePicker selectedDate={localProject.proposedDate} onSelectDate={(val) => handleUpdateField('proposedDate', val)} /></td>
+        <td style={getTdStyle(12)} className={getTdClassName(12, true)}><DatePicker selectedDate={localProject.launchDate} onSelectDate={(val) => handleUpdateField('launchDate', val)} align="right" /></td>
+        <td style={getTdStyle(13)} className={getTdClassName(13, true)}>
           <div className="flex items-center justify-center gap-2">
             <button onClick={handleSaveNewProject} className="p-1 text-green-500 hover:text-green-400"><IconCheck className="w-5 h-5"/></button>
             <button onClick={() => onCancel(project.id)} className="p-1 text-red-500 hover:text-red-400"><IconX className="w-5 h-5"/></button>
@@ -631,20 +638,20 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
 
   return (
     <tr 
-      className="border-b border-gray-200 dark:border-[#363636] hover:bg-gray-50 dark:hover:bg-[#2a2a2a] group transition-colors duration-200 relative"
+      className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] group transition-colors duration-200 relative"
       style={{ 
         transform: 'translate3d(0, 0, 0)', // 硬件加速
         backfaceVisibility: 'hidden',
         contain: 'layout style paint' // 限制重排重绘范围
       }}
     >
-        <td style={columnStyles[0]} className={getTdClassName(0)} onMouseEnter={(e) => onCellMouseEnter(e, project)} onMouseLeave={onCellMouseLeave}><EditableCell value={project.name} onSave={(val) => handleUpdateField('name', val)} /></td>
-        <td style={columnStyles[1]} className={getTdClassName(1)} onMouseEnter={(e) => onCellMouseEnter(e, project)} onMouseLeave={onCellMouseLeave}><EditableCell value={project.businessProblem} onSave={(val) => handleUpdateField('businessProblem', val)} type="textarea" /></td>
-        <td style={columnStyles[2]} className={getTdClassName(2)}><EditableCell value={project.status} onSave={(val) => handleUpdateField('status', val)} type="select" selectType="status" /></td>
-        <td style={columnStyles[3]} className={getTdClassName(3)}><EditableCell value={project.priority} onSave={(val) => handleUpdateField('priority', val)} type="select" selectType="priority" /></td>
-        <td style={columnStyles[4]} className={getTdClassName(4)}><OkrMultiSelectCell selectedKrIds={project.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
-        <td style={columnStyles[5]} className={getTdClassName(5)}><RichTextEditableCell html={project.weeklyUpdate} onSave={(val) => handleUpdateField('weeklyUpdate', val)} /></td>
-        <td style={columnStyles[6]} className={getTdClassName(6)}>
+        <td style={getTdStyle(0)} className={getTdClassName(0)} onMouseEnter={(e) => onCellMouseEnter(e, project)} onMouseLeave={onCellMouseLeave}><EditableCell value={project.name} onSave={(val) => handleUpdateField('name', val)} /></td>
+        <td style={getTdStyle(1)} className={getTdClassName(1)} onMouseEnter={(e) => onCellMouseEnter(e, project)} onMouseLeave={onCellMouseLeave}><EditableCell value={project.businessProblem} onSave={(val) => handleUpdateField('businessProblem', val)} type="textarea" /></td>
+        <td style={getTdStyle(2)} className={getTdClassName(2)}><EditableCell value={project.status} onSave={(val) => handleUpdateField('status', val)} type="select" selectType="status" /></td>
+        <td style={getTdStyle(3)} className={getTdClassName(3)}><EditableCell value={project.priority} onSave={(val) => handleUpdateField('priority', val)} type="select" selectType="priority" /></td>
+        <td style={getTdStyle(4)} className={getTdClassName(4)}><OkrMultiSelectCell selectedKrIds={project.keyResultIds} allOkrs={activeOkrs} onSave={(newKrIds) => handleUpdateField('keyResultIds', newKrIds)} isInvalid={isKrInvalid} /></td>
+        <td style={getTdStyle(5)} className={getTdClassName(5)}><RichTextEditableCell html={project.weeklyUpdate} onSave={(val) => handleUpdateField('weeklyUpdate', val)} /></td>
+        <td style={getTdStyle(6)} className={getTdClassName(6)}>
             <div className="w-full h-full p-1.5 -m-1.5 cursor-pointer rounded-md hover:bg-gray-200/50 dark:hover:bg-[#3a3a3a] transition-colors duration-200 flex items-center">
                 {project.lastWeekUpdate ? (
                     <TruncatedText 
@@ -660,14 +667,14 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
         </td>
 
         {roleInfo.map(({ key, name }, index) => (
-            <td key={key} style={columnStyles[7 + index]} className={getTdClassName(7 + index)}>
+            <td key={key} style={getTdStyle(7 + index)} className={getTdClassName(7 + index)}>
                 <RoleCell team={project[key] as Role} allUsers={allUsers} onClick={() => handleOpenRoleModal(key, name)} />
             </td>
         ))}
 
-        <td style={columnStyles[11]} className={getTdClassName(11)}><DatePicker selectedDate={project.proposedDate} onSelectDate={(val) => handleUpdateField('proposedDate', val)} /></td>
-        <td style={columnStyles[12]} className={getTdClassName(12)}><DatePicker selectedDate={project.launchDate} onSelectDate={(val) => handleUpdateField('launchDate', val)} align="right" /></td>
-        <td style={columnStyles[13]} className={getTdClassName(13)}>
+        <td style={getTdStyle(11)} className={getTdClassName(11)}><DatePicker selectedDate={project.proposedDate} onSelectDate={(val) => handleUpdateField('proposedDate', val)} /></td>
+        <td style={getTdStyle(12)} className={getTdClassName(12)}><DatePicker selectedDate={project.launchDate} onSelectDate={(val) => handleUpdateField('launchDate', val)} align="right" /></td>
+        <td style={getTdStyle(13)} className={getTdClassName(13)}>
           <div>
             <ActionsCell 
               project={project}
@@ -842,9 +849,13 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
       if (index === tableHeaders.length - rightStickyColumnCount) {
           classes += ' border-l-2 border-gray-300 dark:border-[#4a4a4a]';
       }
+      // 为状态列(index=2)和优先级列(index=3)添加防止折行的样式
+      if (index === 2 || index === 3) {
+          classes += ' whitespace-nowrap';
+      }
       return classes;
   };
-  
+
   const getThClassName = (index: number) => {
     let classes = "text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase p-4 border-b border-t border-gray-200 dark:border-[#363636] align-middle bg-gray-50 dark:bg-[#2a2a2a]";
     if (index === leftStickyColumnCount - 1) {
@@ -869,7 +880,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
   };
 
   return (
-    <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl h-full flex flex-col overflow-hidden">
+    <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl h-full flex flex-col overflow-hidden project-table">
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-auto" 
@@ -901,11 +912,21 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
                         >
                           <span>{header.label}</span>
                           {isSortable && onSort && (
-                            <span className="text-xs">
+                            <span className="ml-1">
                               {isActive ? (
-                                sortDirection === 'asc' ? '↑' : '↓'
+                                sortDirection === 'asc' ? (
+                                  <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                )
                               ) : (
-                                '↕'
+                                <svg className="w-3 h-3 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                                </svg>
                               )}
                             </span>
                           )}
@@ -926,11 +947,21 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
                       >
                         <span>{header.label}</span>
                         {isSortable && onSort && (
-                          <span className="text-xs">
+                          <span className="ml-1">
                             {isActive ? (
-                              sortDirection === 'asc' ? '↑' : '↓'
+                              sortDirection === 'asc' ? (
+                                <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              )
                             ) : (
-                              '↕'
+                              <svg className="w-3 h-3 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                              </svg>
                             )}
                           </span>
                         )}
@@ -942,7 +973,6 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
             </tr>
           </thead>
           <tbody 
-            className="divide-y divide-gray-200 dark:divide-[#363636]" 
             style={{ 
               willChange: 'transform',
               transform: 'translate3d(0, 0, 0)', // 硬件加速
