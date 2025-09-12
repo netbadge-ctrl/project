@@ -190,15 +190,32 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
     const relevantUsers = filteredUsers;
 
     return relevantUsers.map(user => {
-      const assignedProjects: { project: Project, role: string, startDate: string, endDate: string }[] = [];
+      const assignedProjects: { project: Project, role: string, startDate: string, endDate: string, description?: string }[] = [];
       relevantProjects.forEach(p => {
         const roles: (keyof Project)[] = ['productManagers', 'backendDevelopers', 'frontendDevelopers', 'qaTesters'];
         const roleNames: Record<string, string> = { productManagers: '产品', backendDevelopers: '后端', frontendDevelopers: '前端', qaTesters: '测试' };
         roles.forEach(roleKey => {
-            const team = (p[roleKey] as { userId: string, startDate: string, endDate: string }[]) || [];
+            const team = (p[roleKey] as any[]) || [];
             const member = team.find(m => m.userId === user.id);
-            if (member && member.startDate && member.endDate) {
-              assignedProjects.push({ project: p, role: roleNames[roleKey], startDate: member.startDate, endDate: member.endDate });
+            if (member) {
+              // 支持新的多时段结构
+              if (member.timeSlots && member.timeSlots.length > 0) {
+                member.timeSlots.forEach((slot: any) => {
+                  if (slot.startDate && slot.endDate) {
+                    assignedProjects.push({ 
+                      project: p, 
+                      role: roleNames[roleKey], 
+                      startDate: slot.startDate, 
+                      endDate: slot.endDate,
+                      description: slot.description 
+                    });
+                  }
+                });
+              }
+              // 向后兼容旧的单时段结构
+              else if (member.startDate && member.endDate) {
+                assignedProjects.push({ project: p, role: roleNames[roleKey], startDate: member.startDate, endDate: member.endDate });
+              }
             }
         });
       });
@@ -318,9 +335,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                               height: '2rem'
                             }}
                           >
-                            <span className="truncate">{item.project.name} ({item.role})</span>
+                            <span className="truncate">
+                              {item.project.name} ({item.role})
+                              {item.description && <span className="ml-1 text-white/70">- {item.description}</span>}
+                            </span>
                             <div className="tooltip bg-gray-900 text-white text-xs rounded py-1 px-2 absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none transition-opacity z-50 whitespace-nowrap group-hover/item:opacity-100">
                               {item.project.name}: {item.startDate} ~ {item.endDate}
+                              {item.description && <br />}
+                              {item.description && <span className="text-gray-300">{item.description}</span>}
                             </div>
                           </div>
                         )

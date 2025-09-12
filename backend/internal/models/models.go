@@ -13,12 +13,22 @@ type User struct {
 	AvatarURL string `json:"avatarUrl" db:"avatar_url"`
 }
 
+// TimeSlot 单个时段配置
+type TimeSlot struct {
+	ID          string  `json:"id"`
+	StartDate   string  `json:"startDate"`
+	EndDate     string  `json:"endDate"`
+	Description *string `json:"description,omitempty"`
+}
+
 // TeamMember 团队成员
 type TeamMember struct {
-	UserID            string `json:"userId"`
-	StartDate         string `json:"startDate"`
-	EndDate           string `json:"endDate"`
-	UseSharedSchedule bool   `json:"useSharedSchedule,omitempty"`
+	UserID            string     `json:"userId"`
+	TimeSlots         []TimeSlot `json:"timeSlots"`
+	UseSharedSchedule bool       `json:"useSharedSchedule,omitempty"`
+	// 兼容性字段，用于向后兼容
+	StartDate *string `json:"startDate,omitempty"`
+	EndDate   *string `json:"endDate,omitempty"`
 }
 
 // Role 角色类型
@@ -77,8 +87,9 @@ type Project struct {
 	BackendDevelopers  Role             `json:"backendDevelopers" db:"backend_developers"`
 	FrontendDevelopers Role             `json:"frontendDevelopers" db:"frontend_developers"`
 	QaTesters          Role             `json:"qaTesters" db:"qa_testers"`
-	ProposalDate       *string          `json:"proposalDate" db:"proposal_date"`
+	ProposalDate       *string          `json:"proposedDate" db:"proposal_date"`
 	LaunchDate         *string          `json:"launchDate" db:"launch_date"`
+	CreatedAt          string           `json:"createdAt" db:"created_at"`
 	Followers          []string         `json:"followers" db:"followers"`
 	Comments           []Comment        `json:"comments" db:"comments"`
 	ChangeLog          []ChangeLogEntry `json:"changeLog" db:"change_log"`

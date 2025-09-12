@@ -85,6 +85,11 @@ export const MainContent: React.FC<MainContentProps> = (props) => {
 
   const filteredAndSortedProjects = useMemo(() => {
     const filtered = projects.filter(project => {
+        // 新建项目始终显示，不受任何条件影响
+        if (project && project.isNew) {
+            return true;
+        }
+
         // 确保项目数据完整性
         if (!project || !project.name) {
             return false;

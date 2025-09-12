@@ -10,7 +10,7 @@ type Config struct {
 }
 
 func Load() *Config {
-	// 数据库始终连接线上环境
+	// 默认连接线上数据库
 	databaseURL := "postgresql://admin:Kingsoft0531@120.92.44.85:51022/project_codebuddy?sslmode=disable"
 
 	// 如果显式设置了DATABASE_URL环境变量，则使用它

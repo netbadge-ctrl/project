@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Project, User, Role, TeamMember, ProjectRoleKey } from '../types';
+import { Project, User, Role, TeamMember, ProjectRoleKey, TimeSlot } from '../types';
 import { IconX, IconTrash, IconPlus, IconLink, IconSearch } from './Icons';
 import { EnhancedDateRangePicker } from './EnhancedDateRangePicker';
+import { MultiTimeSlotEditor } from './MultiTimeSlotEditor';
 import { fuzzySearch } from '../utils';
 import { SearchableSingleSelectDropdown } from './SearchableSingleSelectDropdown';
 import { useDropdownPosition } from '../hooks/useDropdownPosition';
@@ -16,13 +17,22 @@ interface RoleEditModalProps {
   onSave: (projectId: string, roleKey: ProjectRoleKey, newRole: Role) => void;
 }
 
-type TeamMemberWithState = TeamMember & { useSharedSchedule: boolean; _tempId: string };
+type TeamMemberWithState = TeamMember & { useSharedSchedule: boolean; useMultiTimeSlots: boolean; _tempId: string };
 
 export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, roleName, allUsers, onClose, onSave }) => {
   const [currentTeam, setCurrentTeam] = useState<TeamMemberWithState[]>(
     (project[roleKey] || []).map((m, index) => ({ 
         ...m, 
         useSharedSchedule: m.useSharedSchedule ?? false,
+        useMultiTimeSlots: false,
+        timeSlots: m.timeSlots && m.timeSlots.length > 0 ? m.timeSlots : [
+          {
+            id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`,
+            startDate: m.startDate || '',
+            endDate: m.endDate || '',
+            description: ''
+          }
+        ],
         _tempId: `member_${index}_${Date.now()}`
     }))
   );
@@ -80,6 +90,16 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
         })(),
         endDate: '',
         useSharedSchedule: !isFirstMember,
+        useMultiTimeSlots: false,
+        timeSlots: [{
+          id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          startDate: (() => {
+            const today = new Date();
+            return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          })(),
+          endDate: '',
+          description: ''
+        }],
         _tempId: `member_new_${Date.now()}`
       };
       setCurrentTeam(prev => [...prev, newMember]);
@@ -102,19 +122,26 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
   const handleToggleSharedSchedule = (tempId: string) => {
     setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? { ...m, useSharedSchedule: !m.useSharedSchedule } : m));
   };
+
+  const handleToggleMultiTimeSlots = (tempId: string) => {
+    setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? { ...m, useMultiTimeSlots: !m.useMultiTimeSlots } : m));
+  };
+
+  const handleUpdateTimeSlots = (tempId: string, timeSlots: TimeSlot[]) => {
+    setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? { ...m, timeSlots } : m));
+  };
   
   const handleSave = () => {
-    const masterSchedule = currentTeam.length > 0 
-        ? { startDate: currentTeam[0].startDate, endDate: currentTeam[0].endDate }
-        : { startDate: '', endDate: '' };
-
-    const finalTeam = currentTeam.map((member, index) => {
-        const { _tempId, ...memberData } = member;
-        if (index > 0 && memberData.useSharedSchedule) {
-            memberData.startDate = masterSchedule.startDate;
-            memberData.endDate = masterSchedule.endDate;
-        }
-        return memberData as TeamMember;
+    const finalTeam = currentTeam.map((member) => {
+        const { _tempId, useMultiTimeSlots, useSharedSchedule, ...memberData } = member;
+        
+        // 确保 timeSlots 数据被保留
+        const cleanedMember = {
+            ...memberData,
+            timeSlots: member.timeSlots || []
+        } as TeamMember;
+        
+        return cleanedMember;
     });
 
     const seenUserIds = new Set();
@@ -211,9 +238,20 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
                                         </button>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                                    <div>
-                                        <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">姓名</label>
+                                {/* 标签行 */}
+                                <div className="flex gap-6 mb-2">
+                                    <div className="w-32">
+                                        <label className="text-sm text-gray-500 dark:text-gray-400">负责人</label>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="text-sm text-gray-500 dark:text-gray-400">排期</label>
+                                    </div>
+                                </div>
+                                
+                                {/* 内容区域 */}
+                                <div className="flex gap-6 items-start">
+                                    {/* 负责人下拉框 */}
+                                    <div className="w-32">
                                         <SearchableSingleSelectDropdown
                                             value={member.userId}
                                             onChange={(newUserId) => handleUpdateMember(member._tempId, newUserId)}
@@ -221,35 +259,55 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
                                             placeholder="选择成员"
                                         />
                                     </div>
-                                    <div>
-                                        { index === 0 ? (
-                                             <div>
-                                                <EnhancedDateRangePicker
-                                                    startDate={member.startDate}
-                                                    endDate={member.endDate}
-                                                    onSelectRange={(start, end) => handleIndividualDateChange(member._tempId, start, end)}
-                                                    label="排期时间范围"
-                                                    placeholder="选择项目排期日期范围"
-                                                />
+                                    
+                                    {/* 排期时段列表 */}
+                                    <div className="flex-1 space-y-2">
+                                        {(member.timeSlots || []).map((slot) => (
+                                            <div key={slot.id} className="flex items-center gap-3">
+                                                <div className="flex-1">
+                                                    <EnhancedDateRangePicker
+                                                        startDate={slot.startDate}
+                                                        endDate={slot.endDate}
+                                                        onSelectRange={(start, end) => {
+                                                            const updatedSlots = (member.timeSlots || []).map(s => 
+                                                                s.id === slot.id ? { ...s, startDate: start, endDate: end } : s
+                                                            );
+                                                            handleUpdateTimeSlots(member._tempId, updatedSlots);
+                                                        }}
+                                                        placeholder="选择日期范围"
+                                                        compact={true}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const updatedSlots = (member.timeSlots || []).filter(s => s.id !== slot.id);
+                                                        handleUpdateTimeSlots(member._tempId, updatedSlots);
+                                                    }}
+                                                    className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex-shrink-0"
+                                                    title="删除时段"
+                                                >
+                                                    <IconTrash className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        ) : member.useSharedSchedule ? (
-                                            <div className="h-full flex items-center bg-[#6C63FF]/10 border border-[#6C63FF]/20 text-[#6C63FF] dark:text-[#A29DFF] rounded-md px-3 py-1.5">
-                                                <IconLink className="w-5 h-5 mr-2 flex-shrink-0" />
-                                                <span className="text-sm font-semibold truncate">
-                                                    {firstMemberScheduleText}
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <EnhancedDateRangePicker
-                                                    startDate={member.startDate}
-                                                    endDate={member.endDate}
-                                                    onSelectRange={(start, end) => handleIndividualDateChange(member._tempId, start, end)}
-                                                    label="个人排期时间范围"
-                                                    placeholder="选择个人排期日期范围"
-                                                />
-                                            </div>
-                                        )}
+                                        ))}
+                                        
+                                        {/* 添加时段按钮 */}
+                                        <button
+                                            onClick={() => {
+                                                const newSlot = {
+                                                    id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                                    startDate: '',
+                                                    endDate: '',
+                                                    description: ''
+                                                };
+                                                const updatedSlots = [...(member.timeSlots || []), newSlot];
+                                                handleUpdateTimeSlots(member._tempId, updatedSlots);
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 py-2 text-[#6C63FF] hover:text-[#5a52d9] hover:bg-[#6C63FF]/5 rounded-md transition-colors text-sm font-medium"
+                                        >
+                                            <IconPlus className="w-4 h-4" />
+                                            添加时段
+                                        </button>
                                     </div>
                                 </div>
                             </div>

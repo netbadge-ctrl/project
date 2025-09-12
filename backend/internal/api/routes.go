@@ -40,6 +40,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 		// 用户相关路由
 		api.GET("/users", handler.GetUsers)
 		api.POST("/refresh-users", handler.RefreshUsers)
+		api.POST("/sync-employees", handler.SyncEmployeeData)
 
 		// 认证相关路由
 		api.GET("/check-auth", handler.CheckAuth)

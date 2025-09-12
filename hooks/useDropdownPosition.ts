@@ -35,39 +35,44 @@ export const useDropdownPosition = ({
         
         const calculatePosition = () => {
             const rect = triggerEl.getBoundingClientRect();
-            const menuHeight = menuEl.offsetHeight;
-            const menuWidth = menuEl.offsetWidth;
+            const menuHeight = menuEl.offsetHeight || 300;
+            const menuWidth = menuEl.offsetWidth || 288;
             
             let top: number, left: number;
 
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
 
-            const openUp = (preferredPosition === 'top' && spaceAbove > menuHeight + gap) || (spaceBelow < menuHeight + gap && spaceAbove > menuHeight + gap);
-
-            if (openUp) {
-                top = rect.top - menuHeight - gap;
+            // 紧贴按钮显示：优先向下，紧贴按钮底部
+            if (spaceBelow >= menuHeight + 4) {
+                top = rect.bottom + 2; // 紧贴按钮底部，只留2px间距
+            } else if (spaceAbove >= menuHeight + 4) {
+                top = rect.top - menuHeight - 2; // 紧贴按钮顶部
             } else {
-                top = rect.bottom + gap;
+                // 空间不足时，仍然紧贴按钮底部显示
+                top = rect.bottom + 2;
             }
 
-            if (align === 'end') {
-                left = rect.right - menuWidth;
-            } else {
-                left = rect.left;
+            // 完全左对齐到按钮
+            left = rect.left;
+            
+            // 只在必要时调整边界
+            const rightOverflow = left + menuWidth - window.innerWidth;
+            if (rightOverflow > 0) {
+                left = left - rightOverflow - 8; // 向左调整
             }
             
-            // Adjust for viewport boundaries
-            if (left < 0) left = gap;
-            if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - gap;
-            if (top < 0) top = gap;
+            // 确保不超出左边界
+            if (left < 8) {
+                left = 8;
+            }
 
             setStyle({
                 position: 'fixed',
                 top: `${top}px`,
                 left: `${left}px`,
-                width: align === 'start' ? `${rect.width}px` : undefined, // only set width if aligning to start
-                zIndex: 60,
+                width: '288px',
+                zIndex: 9999,
                 opacity: 1,
                 transition: 'opacity 150ms ease-in-out',
                 pointerEvents: 'auto',

@@ -66,7 +66,7 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
         }
     }, []);
 
-    // 处理输入
+    // 直接处理输入，移除防抖以提高响应速度
     const handleInput = useCallback(() => {
         if (!contentRef.current) return;
         
@@ -180,7 +180,7 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                 data-placeholder={placeholder}
             />
 
-            <style jsx>{`
+            <style>{`
                 .rich-text-input [contenteditable]:empty:before {
                     content: attr(data-placeholder);
                     color: #9ca3af;

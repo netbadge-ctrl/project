@@ -1,14 +1,16 @@
 {
-  "version": "2.1.0",
-  "name": "UI Enhancement & Bug Fix Release",
+  "version": "2.1.1",
+  "name": "Critical Bug Fix & Performance Optimization Release",
   "releaseDate": "2025-01-05",
-  "buildTime": "2025-01-05T11:00:00+08:00",
+  "buildTime": "2025-01-05T20:00:00+08:00",
   "features": [
     "项目总览表格固定表头和列",
     "富文本格式正确显示",
     "变更记录完整信息展示",
     "周会视图气泡弹窗优化",
-    "新建项目用户体验改进"
+    "新建项目用户体验改进",
+    "修复关键JavaScript运行时错误",
+    "搜索框和输入框性能优化"
   ],
   "compatibility": {
     "backward": "v2.0.7",
@@ -21,14 +23,20 @@
       "左侧三列（项目名称、业务问题、状态）固定",
       "右侧操作列固定",
       "富文本显示样式支持",
-      "周会视图气泡弹窗悬停延迟机制"
+      "周会视图气泡弹窗悬停延迟机制",
+      "空值安全检查机制",
+      "搜索框防抖机制",
+      "输入框性能优化机制"
     ],
     "updated": [
       "RichTextEditableCell 组件支持HTML格式显示",
       "ChangeLogModal 变更记录包含排期信息",
       "ProjectTable 表格滚动和固定列优化",
       "WeeklyMeetingProjectCard 气泡弹窗触发机制",
-      "新建项目名称输入框默认值优化"
+      "新建项目名称输入框默认值优化",
+      "ProjectOverview 搜索框防抖优化",
+      "AutoResizeInput 组件性能优化",
+      "RichTextInput 组件输入响应优化"
     ],
     "fixed": [
       "项目总览表格表头不固定问题",
@@ -36,13 +44,20 @@
       "变更记录只显示成员姓名不显示排期问题",
       "周会视图气泡弹窗过于敏感问题",
       "新建项目名称默认值用户体验问题",
-      "表格滚动布局问题"
+      "表格滚动布局问题",
+      "PersonalView组件null引用导致的forEach错误",
+      "AnnualStats组件null引用导致的filter错误", 
+      "ProjectOverview组件null引用导致的filter错误",
+      "App.tsx中changeLog不可迭代的运行时错误",
+      "RichTextInput.tsx中JSX布尔属性错误",
+      "搜索框输入卡顿性能问题",
+      "新建项目输入框响应延迟问题"
     ]
   },
   "metrics": {
     "filesAdded": 0,
-    "filesUpdated": 8,
-    "linesOfCode": 1350,
+    "filesUpdated": 16,
+    "linesOfCode": 1420,
     "testCoverage": "96%"
   }
 }

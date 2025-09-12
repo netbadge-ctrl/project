@@ -25,32 +25,34 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
     const stats = useMemo(() => {
         const currentYear = new Date().getFullYear();
         
-        const myProjects = projects.filter(p => 
-            (p.productManagers || []).some(m => m.userId === currentUser.id) ||
-            (p.backendDevelopers || []).some(m => m.userId === currentUser.id) ||
-            (p.frontendDevelopers || []).some(m => m.userId === currentUser.id) ||
-            (p.qaTesters || []).some(m => m.userId === currentUser.id)
+        const myProjects = (projects || []).filter(p => 
+            (p.productManagers || []).some(m => m?.userId === currentUser.id) ||
+            (p.backendDevelopers || []).some(m => m?.userId === currentUser.id) ||
+            (p.frontendDevelopers || []).some(m => m?.userId === currentUser.id) ||
+            (p.qaTesters || []).some(m => m?.userId === currentUser.id)
         );
 
         const annualProjects = myProjects.filter(p => 
             p.proposedDate && new Date(p.proposedDate).getFullYear() === currentYear
         );
 
+        // 年度上线项目：状态为"已完成"、"本周已上线"且上线时间在当前年度的项目
         const launchedProjects = myProjects.filter(p =>
-            p.status === ProjectStatus.Launched && p.launchDate && new Date(p.launchDate).getFullYear() === currentYear
+            (p.status === ProjectStatus.Completed || p.status === ProjectStatus.LaunchedThisWeek) && 
+            p.launchDate && new Date(p.launchDate).getFullYear() === currentYear
         );
 
-        // 进行的OKR项目：状态不等于未开始、暂停、已上线且项目绑定了OKR
+        // 我参与的正在进行的项目：排除"已完成"、"本周已上线"、"未开始"、"暂停"状态的项目
         const ongoingOkrProjects = myProjects.filter(p => 
             p.status !== ProjectStatus.NotStarted && 
             p.status !== ProjectStatus.Paused && 
-            p.status !== ProjectStatus.Launched &&
-            (p.keyResultIds || []).length > 0
+            p.status !== ProjectStatus.LaunchedThisWeek &&
+            p.status !== ProjectStatus.Completed
         );
 
-        // 年度已上线OKR项目：状态为已上线且项目绑定了OKR
+        // 年度已上线的OKR项目：状态为"已完成"、"本周已上线"上线时间在当前年度且绑定了OKR的项目
         const launchedOkrProjects = myProjects.filter(p =>
-            p.status === ProjectStatus.Launched && 
+            (p.status === ProjectStatus.Completed || p.status === ProjectStatus.LaunchedThisWeek) && 
             p.launchDate && 
             new Date(p.launchDate).getFullYear() === currentYear &&
             (p.keyResultIds || []).length > 0
@@ -90,7 +92,7 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
             />
             <StatCard 
                 icon={<IconClipboard className="w-6 h-6"/>}
-                title="进行的OKR项目"
+                title="我参与的正在进行的项目"
                 value={stats.ongoingOkrCount}
                 colorClasses="bg-orange-500 text-white"
             />

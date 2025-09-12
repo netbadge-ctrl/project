@@ -9,6 +9,8 @@ interface KRSelectionModalProps {
   allOkrs: OKR[];
   onSave: (newKrIds: string[]) => void;
   isInvalid?: boolean;
+  triggerRef?: React.RefObject<HTMLElement>;
+  useDropdown?: boolean;
 }
 
 const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
@@ -17,7 +19,9 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
   selectedKrIds,
   allOkrs,
   onSave,
-  isInvalid = false
+  isInvalid = false,
+  triggerRef,
+  useDropdown = false
 }) => {
   const [currentSelection, setCurrentSelection] = useState<string[]>(selectedKrIds || []);
 
@@ -45,6 +49,69 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
 
   if (!isOpen) return null;
 
+  if (useDropdown && triggerRef) {
+    // 下拉菜单模式 - 使用简单的绝对定位
+    return (
+      <div 
+        className="absolute top-full left-0 mt-1 bg-white dark:bg-[#2d2d2d] rounded-lg shadow-2xl w-[600px] max-h-[500px] flex flex-col border border-gray-200 dark:border-[#4a4a4a] z-[9999]"
+      >
+        <div className="p-4 border-b border-gray-200 dark:border-[#4a4a4a] flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            选择关联的关键成果 (KR)
+          </h2>
+          <button
+            onClick={handleCancel}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <IconX className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          {allOkrs.map((okr, okrIndex) => (
+            <div key={okr.id} className="mb-6 last:mb-0">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-base leading-relaxed">
+                O{okrIndex + 1}: {okr.objective}
+              </h3>
+              <div className="space-y-3 pl-4">
+                {okr.keyResults.map((kr, krIndex) => (
+                  <label key={kr.id} className="flex items-start gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-[#3a3a3a] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={currentSelection.includes(kr.id)}
+                      onChange={() => handleToggleOption(kr.id)}
+                      className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <span className="font-medium">KR{krIndex + 1}:</span> {kr.description}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="p-4 border-t border-gray-200 dark:border-[#4a4a4a] flex justify-end gap-2">
+          <button
+            onClick={handleCancel}
+            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            <IconCheck className="w-4 h-4 inline mr-1" />
+            确定
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 全屏模态框模式
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white dark:bg-[#2d2d2d] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-gray-200 dark:border-[#4a4a4a]">

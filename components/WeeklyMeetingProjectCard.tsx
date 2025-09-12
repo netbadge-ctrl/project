@@ -2,42 +2,72 @@ import React, { useState } from 'react';
 import { Project, User, Priority, ProjectStatus, OKR, Role, ProjectRoleKey } from '../types';
 import { IconMessageCircle } from './Icons';
 
+// 全局弹窗管理
+const tooltipRegistry = new Map<string, () => void>();
+
+const globalTooltipController = {
+    closeAll: () => {
+        tooltipRegistry.forEach(closeFn => closeFn());
+    },
+    register: (id: string, closeFn: () => void) => {
+        tooltipRegistry.set(id, closeFn);
+    },
+    unregister: (id: string) => {
+        tooltipRegistry.delete(id);
+    },
+    closeOthers: (currentId: string) => {
+        tooltipRegistry.forEach((closeFn, id) => {
+            if (id !== currentId) {
+                closeFn();
+            }
+        });
+    }
+};
+
 const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project: Project }> = ({ priority, projectOkrs, project }) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const tooltipId = React.useRef(`priority-${project.id}-${Math.random()}`);
     
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const closeTooltip = React.useCallback(() => {
+        setShowTooltip(false);
+    }, []);
+    
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!showTooltip) {
+            globalTooltipController.closeOthers(tooltipId.current);
+        }
+        setShowTooltip(!showTooltip);
         setMousePosition({ 
             x: e.clientX + window.scrollX, 
             y: e.clientY + window.scrollY 
         });
     };
     
-    const handleMouseEnter = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
+    const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Element;
+        if (!target.closest('.priority-tooltip-container')) {
+            setShowTooltip(false);
         }
-        // 添加500ms延迟，悬停后才显示弹窗
-        timeoutRef.current = setTimeout(() => {
-            setShowTooltip(true);
-        }, 500);
-    };
-    
-    const handleMouseLeave = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        setShowTooltip(false);
     };
     
     React.useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
+        globalTooltipController.register(tooltipId.current, closeTooltip);
+        return () => globalTooltipController.unregister(tooltipId.current);
+    }, [closeTooltip]);
+    
+    React.useEffect(() => {
+        if (showTooltip) {
+            document.addEventListener('click', handleClickOutside);
+            const handleScroll = () => setShowTooltip(false);
+            window.addEventListener('scroll', handleScroll, true);
+            return () => {
+                document.removeEventListener('click', handleClickOutside);
+                window.removeEventListener('scroll', handleScroll, true);
+            };
+        }
+    }, [showTooltip]);
     
     const priorityStyles: Record<Priority, string> = {
         [Priority.DeptOKR]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/70 dark:text-red-200 dark:border-red-500/80',
@@ -47,12 +77,10 @@ const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project:
     }
     
     return (
-        <div className="relative">
+        <div className="relative priority-tooltip-container">
             <span 
                 className={`px-2 py-0.5 text-xs font-semibold rounded-md border cursor-pointer ${priorityStyles[priority]}`}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={handleMouseMove}
+                onClick={handleClick}
             >
                 {priority}
             </span>
@@ -88,39 +116,47 @@ const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project:
 const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers: User[] }> = ({ status, project, allUsers }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const tooltipId = React.useRef(`status-${project.id}-${Math.random()}`);
   
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const closeTooltip = React.useCallback(() => {
+    setShowTooltip(false);
+  }, []);
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!showTooltip) {
+      globalTooltipController.closeOthers(tooltipId.current);
+    }
+    setShowTooltip(!showTooltip);
     setMousePosition({ 
       x: e.clientX + window.scrollX, 
       y: e.clientY + window.scrollY 
     });
   };
   
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as Element;
+    if (!target.closest('.status-tooltip-container')) {
+      setShowTooltip(false);
     }
-    // 添加500ms延迟，悬停后才显示弹窗
-    timeoutRef.current = setTimeout(() => {
-      setShowTooltip(true);
-    }, 500);
-  };
-  
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setShowTooltip(false);
   };
   
   React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
+    globalTooltipController.register(tooltipId.current, closeTooltip);
+    return () => globalTooltipController.unregister(tooltipId.current);
+  }, [closeTooltip]);
+  
+  React.useEffect(() => {
+    if (showTooltip) {
+      document.addEventListener('click', handleClickOutside);
+      const handleScroll = () => setShowTooltip(false);
+      window.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [showTooltip]);
   
   const statusStyles: Record<ProjectStatus, string> = {
     [ProjectStatus.NotStarted]: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-600/50 dark:text-gray-300 dark:border-gray-500/60',
@@ -145,12 +181,10 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
   ];
   
   return (
-    <div className="relative">
+    <div className="relative status-tooltip-container">
       <span 
         className={`px-2 py-0.5 text-xs font-medium rounded-full border cursor-pointer ${statusStyles[status]}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseMove={handleMouseMove}
+        onClick={handleClick}
       >
         {status}
       </span>
@@ -205,53 +239,59 @@ interface WeeklyMeetingProjectCardProps {
     onOpenCommentModal: () => void;
 }
 
-const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) => {
+const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> = ({html, title, projectId}) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const tooltipId = React.useRef(`update-${projectId}-${title}-${Math.random()}`);
     const content = html || '<p class="text-gray-400 dark:text-gray-500 italic">无</p>';
     
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const closeTooltip = React.useCallback(() => {
+        setShowTooltip(false);
+    }, []);
+    
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!showTooltip) {
+            globalTooltipController.closeOthers(tooltipId.current);
+        }
+        setShowTooltip(!showTooltip);
         setMousePosition({ 
             x: e.clientX + window.scrollX, 
             y: e.clientY + window.scrollY 
         });
     };
     
-    const handleMouseEnter = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
+    const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Element;
+        if (!target.closest('.update-tooltip-container')) {
+            setShowTooltip(false);
         }
-        // 添加500ms延迟，悬停后才显示弹窗
-        timeoutRef.current = setTimeout(() => {
-            setShowTooltip(true);
-        }, 500);
-    };
-    
-    const handleMouseLeave = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        setShowTooltip(false);
     };
     
     React.useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
+        globalTooltipController.register(tooltipId.current, closeTooltip);
+        return () => globalTooltipController.unregister(tooltipId.current);
+    }, [closeTooltip]);
+    
+    React.useEffect(() => {
+        if (showTooltip) {
+            document.addEventListener('click', handleClickOutside);
+            const handleScroll = () => setShowTooltip(false);
+            window.addEventListener('scroll', handleScroll, true);
+            return () => {
+                document.removeEventListener('click', handleClickOutside);
+                window.removeEventListener('scroll', handleScroll, true);
+            };
+        }
+    }, [showTooltip]);
     
     return (
-        <div className="relative">
+        <div className="relative update-tooltip-container">
             <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
             <div
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[80px] max-h-[120px] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: content }}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={handleMouseMove}
+                onClick={handleClick}
             />
             
             {showTooltip && (
@@ -280,52 +320,58 @@ const UpdateDisplay: React.FC<{html: string, title: string}> = ({html, title}) =
 };
 
 
-const BusinessProblemDisplay: React.FC<{businessProblem: string}> = ({businessProblem}) => {
+const BusinessProblemDisplay: React.FC<{businessProblem: string, projectId: string}> = ({businessProblem, projectId}) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const tooltipId = React.useRef(`business-${projectId}-${Math.random()}`);
     const content = businessProblem || '无';
     
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const closeTooltip = React.useCallback(() => {
+        setShowTooltip(false);
+    }, []);
+    
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!showTooltip) {
+            globalTooltipController.closeOthers(tooltipId.current);
+        }
+        setShowTooltip(!showTooltip);
         setMousePosition({ 
             x: e.clientX + window.scrollX, 
             y: e.clientY + window.scrollY 
         });
     };
     
-    const handleMouseEnter = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
+    const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Element;
+        if (!target.closest('.business-problem-tooltip-container')) {
+            setShowTooltip(false);
         }
-        // 添加500ms延迟，悬停后才显示弹窗
-        timeoutRef.current = setTimeout(() => {
-            setShowTooltip(true);
-        }, 500);
-    };
-    
-    const handleMouseLeave = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        setShowTooltip(false);
     };
     
     React.useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
+        globalTooltipController.register(tooltipId.current, closeTooltip);
+        return () => globalTooltipController.unregister(tooltipId.current);
+    }, [closeTooltip]);
+    
+    React.useEffect(() => {
+        if (showTooltip) {
+            document.addEventListener('click', handleClickOutside);
+            const handleScroll = () => setShowTooltip(false);
+            window.addEventListener('scroll', handleScroll, true);
+            return () => {
+                document.removeEventListener('click', handleClickOutside);
+                window.removeEventListener('scroll', handleScroll, true);
+            };
+        }
+    }, [showTooltip]);
     
     return (
-        <div className="relative">
+        <div className="relative business-problem-tooltip-container">
             <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">解决的业务问题</h4>
             <div 
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg text-sm text-gray-800 dark:text-gray-300 h-20 overflow-hidden cursor-pointer leading-relaxed flex items-start"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={handleMouseMove}
+                onClick={handleClick}
             >
                 <p className="whitespace-pre-wrap line-clamp-3 w-full">
                     {content === '无' ? <span className="text-gray-400 dark:text-gray-500 italic">无</span> : content}
@@ -365,16 +411,16 @@ export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> =
             <div className="p-4 space-y-3 flex-grow flex flex-col overflow-visible">
                 {/* Business Problem Section */}
                 <div className="flex-shrink-0">
-                    <BusinessProblemDisplay businessProblem={project.businessProblem} />
+                    <BusinessProblemDisplay businessProblem={project.businessProblem} projectId={project.id} />
                 </div>
 
                 {/* Updates Section - 改为上下布局，本周在上 */}
                 <div className="space-y-4 flex-grow">
                     <div>
-                        <UpdateDisplay title="本周进展/问题" html={project.weeklyUpdate} />
+                        <UpdateDisplay title="本周进展/问题" html={project.weeklyUpdate} projectId={project.id} />
                     </div>
                     <div>
-                        <UpdateDisplay title="上周进展/问题" html={project.lastWeekUpdate} />
+                        <UpdateDisplay title="上周进展/问题" html={project.lastWeekUpdate} projectId={project.id} />
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import { fuzzySearch } from '../utils';
 interface Option {
     value: string;
     label: string;
+    email?: string; // 添加邮箱字段用于拼音匹配
 }
 
 interface GroupedOption {
@@ -18,6 +19,7 @@ interface MultiSelectDropdownProps {
     selectedValues: string[];
     onSelectionChange: (newSelectedValues: string[]) => void;
     placeholder: string;
+    userData?: Array<{ id: string; name: string; email: string }>; // 添加用户数据
 }
 
 export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
@@ -25,7 +27,8 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     groupedOptions,
     selectedValues,
     onSelectionChange,
-    placeholder
+    placeholder,
+    userData = []
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +36,22 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // 预缓存选项数据，避免每次搜索时重复处理
+    const processedOptions = useMemo(() => {
+        const allOptions = groupedOptions ? groupedOptions.flatMap(g => g.options) : options;
+        return allOptions.map(option => {
+            // 从userData中查找对应的邮箱信息
+            const user = userData.find(u => u.id === option.value);
+            const emailPrefix = user?.email ? user.email.split('@')[0].toLowerCase() : '';
+            
+            return {
+                ...option,
+                searchableText: option.label.toLowerCase(),
+                emailPrefix: emailPrefix
+            };
+        });
+    }, [options, groupedOptions, userData]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -46,21 +65,9 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         };
     }, []);
 
-    // 防抖搜索词更新
+    // 完全移除防抖，直接使用搜索词
     useEffect(() => {
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
-        
-        debounceTimerRef.current = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm);
-        }, 200);
-        
-        return () => {
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-            }
-        };
+        setDebouncedSearchTerm(searchTerm);
     }, [searchTerm]);
 
     useEffect(() => {
@@ -83,27 +90,71 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         : placeholder;
 
     const { flatFilteredOptions, filteredGroupedOptions } = useMemo(() => {
+        // 如果没有搜索词，直接返回所有选项
+        if (!debouncedSearchTerm.trim()) {
+            if (groupedOptions) {
+                return {
+                    flatFilteredOptions: groupedOptions.flatMap(g => g.options),
+                    filteredGroupedOptions: groupedOptions,
+                };
+            }
+            return {
+                flatFilteredOptions: options,
+                filteredGroupedOptions: null
+            };
+        }
+
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        
+        // 极速搜索：使用indexOf代替includes，更快
+        const filtered = [];
+        for (let i = 0; i < processedOptions.length; i++) {
+            const option = processedOptions[i];
+            // 姓名匹配 - 使用indexOf比includes更快
+            if (option.searchableText.indexOf(searchLower) !== -1) {
+                filtered.push(option);
+                continue;
+            }
+            // 邮箱前缀匹配
+            if (option.emailPrefix && option.emailPrefix.indexOf(searchLower) !== -1) {
+                filtered.push(option);
+            }
+        }
+        
         if (groupedOptions) {
-            const filteredGroups = groupedOptions
-                .map(group => ({
-                    ...group,
-                    options: group.options.filter(option => fuzzySearch(debouncedSearchTerm, option.label))
-                }))
-                .filter(group => group.options.length > 0);
+            // 创建快速查找Set
+            const filteredValueSet = new Set(filtered.map(f => f.value));
+            const filteredGroups = [];
+            
+            for (let i = 0; i < groupedOptions.length; i++) {
+                const group = groupedOptions[i];
+                const groupOptions = [];
+                
+                for (let j = 0; j < group.options.length; j++) {
+                    if (filteredValueSet.has(group.options[j].value)) {
+                        groupOptions.push(group.options[j]);
+                    }
+                }
+                
+                if (groupOptions.length > 0) {
+                    filteredGroups.push({
+                        ...group,
+                        options: groupOptions
+                    });
+                }
+            }
             
             return {
-                flatFilteredOptions: filteredGroups.flatMap(g => g.options),
+                flatFilteredOptions: filtered,
                 filteredGroupedOptions: filteredGroups,
             };
         }
         
-        const filtered = options
-            .filter(option => fuzzySearch(debouncedSearchTerm, option.label));
         return {
             flatFilteredOptions: filtered,
             filteredGroupedOptions: null
         };
-    }, [options, groupedOptions, debouncedSearchTerm]);
+    }, [processedOptions, groupedOptions, debouncedSearchTerm]);
 
     const areAllFilteredSelected = useMemo(() => {
         if (flatFilteredOptions.length === 0) return false;

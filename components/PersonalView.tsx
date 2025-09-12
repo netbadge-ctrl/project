@@ -50,16 +50,19 @@ export const PersonalView: React.FC<PersonalViewProps> = ({ projects, allUsers, 
     const myActive: Project[] = [];
     const followed: Project[] = [];
 
-    projects.forEach(p => {
+    projects?.forEach(p => {
       const isParticipant = (
-        (p.productManagers || []).some(m => m.userId === currentUser.id) ||
-        (p.backendDevelopers || []).some(m => m.userId === currentUser.id) ||
-        (p.frontendDevelopers || []).some(m => m.userId === currentUser.id) ||
-        (p.qaTesters || []).some(m => m.userId === currentUser.id)
+        (p.productManagers || []).some(m => m?.userId === currentUser.id) ||
+        (p.backendDevelopers || []).some(m => m?.userId === currentUser.id) ||
+        (p.frontendDevelopers || []).some(m => m?.userId === currentUser.id) ||
+        (p.qaTesters || []).some(m => m?.userId === currentUser.id)
       );
 
-      // "Ongoing" projects are those that are not 'Launched', 'Not Started', and 'Paused'.
-      const isOngoing = p.status !== ProjectStatus.Launched && p.status !== ProjectStatus.NotStarted && p.status !== ProjectStatus.Paused;
+      // "Ongoing" projects are those that are not 'Completed', 'LaunchedThisWeek', 'Not Started', and 'Paused'.
+      const isOngoing = p.status !== ProjectStatus.Completed && 
+                       p.status !== ProjectStatus.LaunchedThisWeek && 
+                       p.status !== ProjectStatus.NotStarted && 
+                       p.status !== ProjectStatus.Paused;
 
       if (isParticipant && isOngoing) {
         myActive.push(p);
@@ -81,7 +84,7 @@ export const PersonalView: React.FC<PersonalViewProps> = ({ projects, allUsers, 
     const allComments: { comment: Comment; project: Project }[] = [];
     const seenCommentIds = new Set<string>();
 
-    projects.forEach(p => {
+    projects?.forEach(p => {
         (p.comments || []).forEach(c => {
             const commentDate = new Date(c.createdAt);
             const isRelevantProject = relevantProjectIds.has(p.id);
@@ -124,7 +127,7 @@ export const PersonalView: React.FC<PersonalViewProps> = ({ projects, allUsers, 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             {/* Left column for projects */}
             <div className="lg:col-span-3 space-y-8">
-                <Section title="我正在参与的正在进行的项目" count={myActiveProjects.length}>
+                <Section title="我参与的正在进行的项目" count={myActiveProjects.length}>
                   {myActiveProjects.map(project => (
                     <ProjectCard key={`my-${project.id}`} project={project} allUsers={allUsers} onClick={() => setDetailModalProject(project)} />
                   ))}

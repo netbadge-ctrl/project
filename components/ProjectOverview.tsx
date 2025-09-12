@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Project, ProjectStatus, Priority, OKR } from '../types';
 import { useFilterState } from '../context/FilterStateContext';
 import { MultiSelectDropdown } from './MultiSelectDropdown';
 import { KRFilterButton } from './KRFilterButton';
 import { ProjectTable } from './ProjectTable';
+import { debounce } from '../utils';
 
-type SortField = 'name' | 'status' | 'priority' | 'createdAt';
+type SortField = 'name' | 'status' | 'priority' | 'createdAt' | 'proposedDate' | 'launchDate';
 type SortDirection = 'asc' | 'desc';
 
 interface SortConfig {
@@ -50,8 +51,31 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const { state, updateProjectOverviewFilters } = useFilterState();
   const filters = state.projectOverview;
 
+  // 本地搜索状态（用于即时显示，不触发重新计算）
+  const [localSearchTerm, setLocalSearchTerm] = useState(filters.searchTerm);
+  
+  // 防抖更新搜索词 - 减少防抖时间以提升响应速度
+  const debouncedUpdateSearch = useCallback(
+    debounce((value: string) => {
+      updateProjectOverviewFilters({ searchTerm: value });
+    }, 50),
+    [updateProjectOverviewFilters]
+  );
+
+  // 处理搜索输入变化 - 使用即时搜索提升响应速度
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalSearchTerm(value);
+    
+    // 对于短搜索词，立即更新；对于长搜索词，使用防抖
+    if (value.length <= 2) {
+      updateProjectOverviewFilters({ searchTerm: value });
+    } else {
+      debouncedUpdateSearch(value);
+    }
+  }, [debouncedUpdateSearch, updateProjectOverviewFilters]);
+
   // 本地状态处理函数
-  const setSearchTerm = (value: string) => updateProjectOverviewFilters({ searchTerm: value });
   const setSelectedStatuses = (value: string[]) => updateProjectOverviewFilters({ selectedStatuses: value });
   const setSelectedPriorities = (value: string[]) => updateProjectOverviewFilters({ selectedPriorities: value });
   const setSelectedParticipants = (value: string[]) => updateProjectOverviewFilters({ selectedParticipants: value });
@@ -78,30 +102,74 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     }));
   };
 
-  // 筛选和排序项目
+  // 筛选和排序项目 - 使用高效的Set查找方式（参考看板和周会视图）
   const filteredAndSortedProjects = useMemo(() => {
+    // 确保项目数组存在且去重（防止重复key错误）
+    const uniqueProjects = Array.from(
+      new Map((projects || []).map(p => [p.id, p])).values()
+    );
+    
+    // 预计算所有筛选集合，使用Set进行O(1)查找
+    const statusSet = new Set(selectedStatuses);
+    const prioritySet = new Set(selectedPriorities);
+    const participantSet = new Set(selectedParticipants);
+    const krSet = new Set(selectedKrs);
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    
     // 首先筛选项目
-    const filtered = projects.filter(project => {
+    const filtered = uniqueProjects.filter(project => {
       // 新建的项目（处于编辑状态）始终显示，不受筛选条件影响
       if (editingId && project.id === editingId) {
         return true;
       }
       
-      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (project.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (project.businessProblem || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(project.status);
-      const matchesPriority = selectedPriorities.length === 0 || selectedPriorities.includes(project.priority);
-      const matchesParticipant = selectedParticipants.length === 0 || selectedParticipants.some(participantId => {
-        const roles = ['productManagers', 'backendDevelopers', 'frontendDevelopers', 'qaTesters'];
-        return roles.some(role => 
-          (project[role as keyof Project] as any[] || []).some((member: any) => member.userId === participantId)
-        );
-      });
-      const matchesKr = selectedKrs.length === 0 || 
-                       (project.keyResultIds || []).some(krId => selectedKrs.includes(krId));
+      // 状态筛选 - 使用Set快速查找
+      if (statusSet.size > 0 && !statusSet.has(project.status)) {
+        return false;
+      }
       
-      return matchesSearch && matchesStatus && matchesPriority && matchesParticipant && matchesKr;
+      // 优先级筛选 - 使用Set快速查找
+      if (prioritySet.size > 0 && !prioritySet.has(project.priority)) {
+        return false;
+      }
+      
+      // 参与人筛选 - 使用Set快速查找
+      if (participantSet.size > 0) {
+        const projectParticipants = new Set([
+          ...(project.productManagers || []).map(m => m.userId),
+          ...(project.backendDevelopers || []).map(m => m.userId),
+          ...(project.frontendDevelopers || []).map(m => m.userId),
+          ...(project.qaTesters || []).map(m => m.userId),
+        ]);
+        
+        // 检查是否有交集
+        let hasParticipant = false;
+        for (const participantId of participantSet) {
+          if (projectParticipants.has(participantId)) {
+            hasParticipant = true;
+            break;
+          }
+        }
+        if (!hasParticipant) return false;
+      }
+      
+      // KR筛选 - 使用Set快速查找
+      if (krSet.size > 0) {
+        const projectKrs = project.keyResultIds || [];
+        const hasMatchingKr = projectKrs.some(krId => krSet.has(krId));
+        if (!hasMatchingKr) return false;
+      }
+      
+      // 搜索匹配 - 只搜索项目名称
+      if (lowerSearchTerm) {
+        const projectName = (project.name || '').toLowerCase();
+        
+        if (!projectName.includes(lowerSearchTerm)) {
+          return false;
+        }
+      }
+      
+      return true;
     });
 
     // 然后排序项目
@@ -113,7 +181,25 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           comparison = a.name.localeCompare(b.name, 'zh-CN');
           break;
         case 'status':
-          comparison = a.status.localeCompare(b.status, 'zh-CN');
+          // 状态排序：按照指定的业务流程顺序
+          const statusOrder = {
+            '未开始': 0,
+            '讨论中': 1,
+            '产品设计': 2,
+            '需求完成': 3,
+            '评审完成': 4,
+            '开发中': 5,
+            '开发完成': 6,
+            '测试中': 7,
+            '测试完成': 8,
+            '本周已上线': 9,
+            '已完成': 10,
+            '暂停': 11,
+            '项目进行中': 12
+          };
+          const aStatusOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 999;
+          const bStatusOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 999;
+          comparison = aStatusOrder - bStatusOrder;
           break;
         case 'priority':
           // 优先级排序：部门OKR > 个人OKR > 临时重要需求 > 不重要的需求
@@ -122,12 +208,24 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           const bOrder = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 999;
           comparison = aOrder - bOrder;
           break;
+        case 'proposedDate':
+          // 按提出时间排序
+          const aProposedTime = a.proposedDate ? new Date(a.proposedDate).getTime() : 0;
+          const bProposedTime = b.proposedDate ? new Date(b.proposedDate).getTime() : 0;
+          comparison = bProposedTime - aProposedTime; // 默认倒序（最新的在前）
+          break;
+        case 'launchDate':
+          // 按上线时间排序
+          const aLaunchTime = a.launchDate ? new Date(a.launchDate).getTime() : 0;
+          const bLaunchTime = b.launchDate ? new Date(b.launchDate).getTime() : 0;
+          comparison = bLaunchTime - aLaunchTime; // 默认倒序（最新的在前）
+          break;
         case 'createdAt':
         default:
-          // 按创建时间排序，使用proposedDate作为创建时间
-          const aTime = a.proposedDate ? new Date(a.proposedDate).getTime() : 0;
-          const bTime = b.proposedDate ? new Date(b.proposedDate).getTime() : 0;
-          comparison = bTime - aTime; // 默认倒序（最新的在前）
+          // 按真正的创建时间排序，使用createdAt字段
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          comparison = bTime - aTime; // 默认倒序（最新创建的在前）
           break;
       }
       
@@ -138,7 +236,11 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   // 准备筛选选项
   const statusOptions = Object.values(ProjectStatus).map(status => ({ value: status, label: status }));
   const priorityOptions = Object.values(Priority).map(priority => ({ value: priority, label: priority }));
-  const participantOptions = (allUsers || []).map(user => ({ value: user.id, label: user.name }));
+  const participantOptions = (allUsers || []).map(user => ({ 
+    value: user.id, 
+    label: user.name,
+    email: user.email 
+  }));
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
@@ -150,9 +252,9 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             <div className="w-full lg:w-1/6">
               <input
                 type="text"
-                placeholder="搜索项目名称、描述..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="搜索项目名称"
+                value={localSearchTerm}
+                onChange={handleSearchChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-[#4a4a4a] rounded-md bg-white dark:bg-[#2d2d2d] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -176,6 +278,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 selectedValues={selectedParticipants}
                 onSelectionChange={setSelectedParticipants}
                 placeholder="参与人"
+                userData={allUsers || []}
               />
               <KRFilterButton
                 activeOkrs={activeOkrs}

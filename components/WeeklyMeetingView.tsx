@@ -82,14 +82,14 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
         };
         
         return filteredProjects.sort((a, b) => {
-            // Sort by Priority
+            // 1. Sort by Priority
             const priorityA = priorityOrder[a.priority];
             const priorityB = priorityOrder[b.priority];
             if (priorityA !== priorityB) {
                 return priorityA - priorityB;
             }
-            
-            // Sort by OKR ID
+
+            // 2. Sort by OKR ID
             const getOkrId = (project: Project) => {
                 const keyResultIds = project.keyResultIds || [];
                 if (keyResultIds.length > 0) {
@@ -104,7 +104,7 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
                 return okrA.localeCompare(okrB);
             }
 
-            // Sort by Product Manager name
+            // 3. Sort by Product Manager name
             const getPmName = (project: Project) => {
                 const productManagers = project.productManagers || [];
                 if (productManagers.length > 0) {
@@ -119,7 +119,28 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
                 return pmA.localeCompare(pmB);
             }
 
-            // Fallback sort
+            // 4. Sort by Status
+            const statusOrder: Record<ProjectStatus, number> = {
+                [ProjectStatus.Discussion]: 0,
+                [ProjectStatus.RequirementsDone]: 1,
+                [ProjectStatus.ReviewDone]: 2,
+                [ProjectStatus.ProductDesign]: 3,
+                [ProjectStatus.InProgress]: 4,
+                [ProjectStatus.ProjectInProgress]: 5,
+                [ProjectStatus.DevDone]: 6,
+                [ProjectStatus.Testing]: 7,
+                [ProjectStatus.TestDone]: 8,
+                [ProjectStatus.NotStarted]: 9,
+                [ProjectStatus.Launched]: 10,
+                [ProjectStatus.Paused]: 11,
+            };
+            const statusA = statusOrder[a.status];
+            const statusB = statusOrder[b.status];
+            if (statusA !== statusB) {
+                return statusA - statusB;
+            }
+
+            // 5. Fallback sort by proposed date
             return new Date(b.proposedDate).getTime() - new Date(a.proposedDate).getTime();
         });
     }, [projects, allUsers, keyResultToOkrMap, selectedPriorities, selectedKrIds, selectedParticipantIds, selectedStatuses]);

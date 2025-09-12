@@ -121,7 +121,7 @@ func (h *Handler) migrateProjects() error {
 	lastWeekUpdate1 := "<div>确定了市场推广的核心主题和预算。</div>"
 	proposalDate1 := "2024-05-01"
 	launchDate1 := "2024-09-01"
-	
+
 	businessProblem2 := "移动端应用启动时间过长，用户体验不佳。"
 	weeklyUpdate2 := "完成了首屏加载优化，正在进行内存管理优化。"
 	lastWeekUpdate2 := "分析了性能瓶颈，制定了优化方案。"
@@ -139,16 +139,16 @@ func (h *Handler) migrateProjects() error {
 			LastWeekUpdate:  &lastWeekUpdate1,
 			Status:          "开发中",
 			ProductManagers: []models.TeamMember{
-				{UserID: "20416", StartDate: "2024-06-01", EndDate: "2024-09-01"},
+				{UserID: "20416", StartDate: stringPtr("2024-06-01"), EndDate: stringPtr("2024-09-01")},
 			},
 			BackendDevelopers: []models.TeamMember{
-				{UserID: "21614", StartDate: "2024-07-01", EndDate: "2024-08-15"},
+				{UserID: "21614", StartDate: stringPtr("2024-07-01"), EndDate: stringPtr("2024-08-15")},
 			},
 			FrontendDevelopers: []models.TeamMember{
-				{UserID: "25408", StartDate: "2024-07-01", EndDate: "2024-08-20"},
+				{UserID: "25408", StartDate: stringPtr("2024-07-01"), EndDate: stringPtr("2024-08-20")},
 			},
 			QaTesters: []models.TeamMember{
-				{UserID: "24533", StartDate: "2024-08-01", EndDate: "2024-09-01"},
+				{UserID: "24533", StartDate: stringPtr("2024-08-01"), EndDate: stringPtr("2024-09-01")},
 			},
 			ProposalDate: &proposalDate1,
 			LaunchDate:   &launchDate1,
@@ -166,16 +166,16 @@ func (h *Handler) migrateProjects() error {
 			LastWeekUpdate:  &lastWeekUpdate2,
 			Status:          "开发中",
 			ProductManagers: []models.TeamMember{
-				{UserID: "20416", StartDate: "2024-06-15", EndDate: "2024-08-30"},
+				{UserID: "20416", StartDate: stringPtr("2024-06-15"), EndDate: stringPtr("2024-08-30")},
 			},
 			BackendDevelopers: []models.TeamMember{
-				{UserID: "21614", StartDate: "2024-07-01", EndDate: "2024-08-15"},
+				{UserID: "21614", StartDate: stringPtr("2024-07-01"), EndDate: stringPtr("2024-08-15")},
 			},
 			FrontendDevelopers: []models.TeamMember{
-				{UserID: "25408", StartDate: "2024-07-01", EndDate: "2024-08-30"},
+				{UserID: "25408", StartDate: stringPtr("2024-07-01"), EndDate: stringPtr("2024-08-30")},
 			},
 			QaTesters: []models.TeamMember{
-				{UserID: "24533", StartDate: "2024-08-01", EndDate: "2024-08-30"},
+				{UserID: "24533", StartDate: stringPtr("2024-08-01"), EndDate: stringPtr("2024-08-30")},
 			},
 			ProposalDate: &proposalDate2,
 			LaunchDate:   &launchDate2,

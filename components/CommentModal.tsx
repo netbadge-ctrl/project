@@ -73,7 +73,29 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
   const filteredMentionUsers = useMemo(() => {
       if (!mentionPopup.show) return [];
       const mentionedIdsSet = new Set(mentionedUserIds);
-      return allUsers.filter(u => u.id !== currentUser.id && !mentionedIdsSet.has(u.id) && fuzzySearch(mentionPopup.filter, u.name));
+      const searchTerm = mentionPopup.filter.toLowerCase();
+      
+      return allUsers.filter(u => {
+          // 只过滤已经被@过的用户，允许@自己
+          if (mentionedIdsSet.has(u.id)) {
+              return false;
+          }
+          
+          // 1. 姓名模糊搜索
+          if (fuzzySearch(mentionPopup.filter, u.name)) {
+              return true;
+          }
+          
+          // 2. 邮箱前缀匹配（用于拼音搜索）
+          if (u.email) {
+              const emailPrefix = u.email.split('@')[0].toLowerCase();
+              if (emailPrefix.includes(searchTerm)) {
+                  return true;
+              }
+          }
+          
+          return false;
+      });
   }, [mentionPopup, allUsers, currentUser.id, mentionedUserIds]);
 
 
@@ -121,7 +143,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
                 {mentionPopup.show && filteredMentionUsers.length > 0 && (
                     <div className="absolute bottom-full mb-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-lg shadow-xl z-10 p-1">
                         <ul>
-                            {filteredMentionUsers.slice(0, 5).map(user => (
+                            {filteredMentionUsers.map(user => (
                                 <li key={user.id}>
                                     <button onClick={() => handleSelectMention(user)} className="w-full text-left flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-[#3a3a3a] text-gray-800 dark:text-gray-200">
                                         <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
@@ -139,19 +161,13 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
                     value={newComment}
                     onChange={handleTextChange}
                     onKeyDown={(e) => {
-                        // 统一换行操作：Enter提交，Shift+Enter换行
-                        if (e.key === 'Enter') {
-                            if (e.shiftKey) {
-                                // Shift+Enter允许换行（默认行为）
-                                return;
-                            } else {
-                                // Enter键提交
-                                e.preventDefault();
-                                handleSubmit();
-                            }
+                        // 只允许换行，不允许回车提交
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            // 普通Enter键也允许换行，不提交
+                            return;
                         }
                     }}
-                    placeholder="添加评论... 输入 @ 来提及他人（Enter 提交，Shift+Enter 换行）"
+                    placeholder="添加评论... 输入 @ 来提及他人"
                     className="w-full bg-gray-100 dark:bg-[#2d2d2d] border border-gray-300 dark:border-[#4a4a4a] rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] resize-none"
                     rows={3}
                 />

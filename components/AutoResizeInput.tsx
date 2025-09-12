@@ -84,6 +84,12 @@ export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
     };
   }, []);
 
+  // 防抖的高度调整函数
+  // 直接调用 adjustHeight，移除防抖以提高响应速度
+  const debouncedAdjustHeight = useCallback(() => {
+    adjustHeight();
+  }, [adjustHeight]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       // 对于项目名称，Enter键保存而不是换行
@@ -97,9 +103,9 @@ export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
     // 调用外部的onKeyDown处理器
     onKeyDown?.(e);
     
-    // 按键后调整高度
-    setTimeout(() => adjustHeight(), 10);
-  }, [onSave, onCancel, onKeyDown, adjustHeight]);
+    // 按键后使用防抖的高度调整
+    debouncedAdjustHeight();
+  }, [onSave, onCancel, onKeyDown, debouncedAdjustHeight]);
 
   const handleBlur = useCallback(() => {
     onBlur?.();
@@ -108,14 +114,14 @@ export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
-    // 输入时立即调整高度，使用requestAnimationFrame确保在下一帧执行
-    requestAnimationFrame(() => adjustHeight());
-  }, [onChange, adjustHeight]);
+    // 使用防抖的高度调整
+    debouncedAdjustHeight();
+  }, [onChange, debouncedAdjustHeight]);
 
   const handleInput = useCallback(() => {
-    // 输入事件也触发高度调整，立即执行
-    requestAnimationFrame(() => adjustHeight());
-  }, [adjustHeight]);
+    // 输入事件也使用防抖的高度调整
+    debouncedAdjustHeight();
+  }, [debouncedAdjustHeight]);
 
   const textareaStyle = useMemo(() => ({
     minHeight: `${minRows * 1.5}rem`,

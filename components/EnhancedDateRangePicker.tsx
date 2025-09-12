@@ -12,6 +12,7 @@ interface EnhancedDateRangePickerProps {
   maxDate?: string;
   className?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export const EnhancedDateRangePicker: React.FC<EnhancedDateRangePickerProps> = ({
@@ -23,7 +24,8 @@ export const EnhancedDateRangePicker: React.FC<EnhancedDateRangePickerProps> = (
   minDate,
   maxDate,
   className = '',
-  disabled = false
+  disabled = false,
+  compact = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -153,7 +155,7 @@ export const EnhancedDateRangePicker: React.FC<EnhancedDateRangePickerProps> = (
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {label && (
+      {label && !compact && (
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
         </label>
@@ -162,7 +164,8 @@ export const EnhancedDateRangePicker: React.FC<EnhancedDateRangePickerProps> = (
       {/* 输入框 */}
       <div
         className={`
-          relative w-full px-3 py-2 text-sm border rounded-lg cursor-pointer transition-all
+          relative w-full text-sm border rounded-lg cursor-pointer transition-all
+          ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}
           ${disabled 
             ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700' 
             : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF] focus:border-[#6C63FF]'

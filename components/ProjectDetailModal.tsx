@@ -28,7 +28,8 @@ const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
         [ProjectStatus.DevDone]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/50 dark:text-yellow-300 dark:border-yellow-500/60',
         [ProjectStatus.Testing]: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-600/50 dark:text-pink-300 dark:border-pink-500/60',
         [ProjectStatus.TestDone]: 'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-600/50 dark:text-teal-300 dark:border-teal-500/60',
-        [ProjectStatus.Launched]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
+        [ProjectStatus.ThisWeekOnline]: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-600/50 dark:text-emerald-300 dark:border-emerald-500/60',
+        [ProjectStatus.Completed]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
         [ProjectStatus.Paused]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/50 dark:text-red-300 dark:border-red-500/60',
         [ProjectStatus.ProjectInProgress]: 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-600/50 dark:text-violet-300 dark:border-violet-500/60',
     };
@@ -119,17 +120,26 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                         </div>
                         <InfoBlock label="关联的 OKR">
                             {projectOkrs.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {projectOkrs.map(okr => (
-                                        <li key={okr.id} className="text-xs">
-                                            <strong className="text-gray-600 dark:text-gray-400 block">O: {okr.objective}</strong>
-                                            <ul className="pl-4">
-                                                {okr.keyResults.filter(kr => project.keyResultIds.includes(kr.id)).map(kr => (
-                                                    <li key={kr.id} className="text-gray-700 dark:text-gray-300">KR: {kr.description}</li>
-                                                ))}
-                                            </ul>
-                                        </li>
-                                    ))}
+                                <ul className="space-y-1">
+                                    {(() => {
+                                        // 去重处理，确保每个KR只显示一次
+                                        const uniqueKrs = new Map();
+                                        projectOkrs.forEach(okr => {
+                                            okr.keyResults
+                                                .filter(kr => project.keyResultIds.includes(kr.id))
+                                                .forEach(kr => {
+                                                    if (!uniqueKrs.has(kr.id)) {
+                                                        uniqueKrs.set(kr.id, kr);
+                                                    }
+                                                });
+                                        });
+                                        
+                                        return Array.from(uniqueKrs.values()).map((kr, index) => (
+                                            <li key={`${kr.id}-${index}`} className="text-xs text-gray-700 dark:text-gray-300">
+                                                KR: {kr.description}
+                                            </li>
+                                        ));
+                                    })()}
                                 </ul>
                             ) : "未关联"}
                         </InfoBlock>

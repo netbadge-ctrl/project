@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"project-management-backend/internal/models"
@@ -30,9 +31,9 @@ func (h *Handler) GetProjects(c *gin.Context) {
 		SELECT id, name, priority, business_problem, key_result_ids, weekly_update, 
 		       last_week_update, status, product_managers, backend_developers, 
 		       frontend_developers, qa_testers, proposal_date, launch_date, 
-		       followers, comments, change_log
+		       created_at, followers, comments, change_log
 		FROM projects
-		ORDER BY id
+		ORDER BY created_at DESC
 	`
 
 	rows, err := h.db.Query(query)
@@ -43,6 +44,8 @@ func (h *Handler) GetProjects(c *gin.Context) {
 	defer rows.Close()
 
 	var projects []models.Project
+	var projectIDs []string
+
 	for rows.Next() {
 		var p models.Project
 		var keyResultIds pq.StringArray
@@ -54,7 +57,7 @@ func (h *Handler) GetProjects(c *gin.Context) {
 			&p.ID, &p.Name, &p.Priority, &p.BusinessProblem, &keyResultIds,
 			&p.WeeklyUpdate, &p.LastWeekUpdate, &p.Status, &productManagers,
 			&backendDevelopers, &frontendDevelopers, &qaTesters,
-			&p.ProposalDate, &p.LaunchDate, &followers, &comments, &changeLog,
+			&p.ProposalDate, &p.LaunchDate, &p.CreatedAt, &followers, &comments, &changeLog,
 		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -73,10 +76,185 @@ func (h *Handler) GetProjects(c *gin.Context) {
 		json.Unmarshal(comments, &p.Comments)
 		json.Unmarshal(changeLog, &p.ChangeLog)
 
+		// 初始化空的TimeSlots
+		h.initializeEmptyTimeSlots(&p)
+
 		projects = append(projects, p)
+		projectIDs = append(projectIDs, p.ID)
+	}
+
+	// 批量加载所有项目的时段数据（优化N+1查询问题）
+	if len(projectIDs) > 0 {
+		err = h.loadAllTimeSlots(projects, projectIDs)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load time slots: " + err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, projects)
+}
+
+// loadTimeSlots 加载项目的多时段数据
+func (h *Handler) loadTimeSlots(project *models.Project) error {
+	query := `
+		SELECT user_id, role_key, start_date, end_date, description
+		FROM time_slots 
+		WHERE project_id = $1
+		ORDER BY role_key, user_id, start_date
+	`
+
+	rows, err := h.db.Query(query, project.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// 创建映射来组织时段数据
+	timeSlotMap := make(map[string]map[string][]models.TimeSlot)
+
+	for rows.Next() {
+		var userID, roleKey, description string
+		var startDate, endDate *string
+
+		err := rows.Scan(&userID, &roleKey, &startDate, &endDate, &description)
+		if err != nil {
+			return err
+		}
+
+		timeSlot := models.TimeSlot{
+			ID:          "slot_" + userID + "_" + roleKey,
+			Description: &description,
+		}
+
+		if startDate != nil {
+			timeSlot.StartDate = *startDate
+		}
+		if endDate != nil {
+			timeSlot.EndDate = *endDate
+		}
+
+		if timeSlotMap[roleKey] == nil {
+			timeSlotMap[roleKey] = make(map[string][]models.TimeSlot)
+		}
+		timeSlotMap[roleKey][userID] = append(timeSlotMap[roleKey][userID], timeSlot)
+	}
+
+	// 将时段数据分配给对应的团队成员
+	h.assignTimeSlotsToMembers(project.ProductManagers, timeSlotMap["productManagers"])
+	h.assignTimeSlotsToMembers(project.BackendDevelopers, timeSlotMap["backendDevelopers"])
+	h.assignTimeSlotsToMembers(project.FrontendDevelopers, timeSlotMap["frontendDevelopers"])
+	h.assignTimeSlotsToMembers(project.QaTesters, timeSlotMap["qaTesters"])
+
+	return nil
+}
+
+// assignTimeSlotsToMembers 将时段数据分配给团队成员
+func (h *Handler) assignTimeSlotsToMembers(members []models.TeamMember, userTimeSlots map[string][]models.TimeSlot) {
+	for i := range members {
+		if timeSlots, exists := userTimeSlots[members[i].UserID]; exists {
+			members[i].TimeSlots = timeSlots
+		} else {
+			// 如果没有时段数据，创建一个默认的空时段
+			members[i].TimeSlots = []models.TimeSlot{}
+		}
+	}
+}
+
+// initializeEmptyTimeSlots 初始化空的时段数据
+func (h *Handler) initializeEmptyTimeSlots(project *models.Project) {
+	for i := range project.ProductManagers {
+		project.ProductManagers[i].TimeSlots = []models.TimeSlot{}
+	}
+	for i := range project.BackendDevelopers {
+		project.BackendDevelopers[i].TimeSlots = []models.TimeSlot{}
+	}
+	for i := range project.FrontendDevelopers {
+		project.FrontendDevelopers[i].TimeSlots = []models.TimeSlot{}
+	}
+	for i := range project.QaTesters {
+		project.QaTesters[i].TimeSlots = []models.TimeSlot{}
+	}
+}
+
+// loadAllTimeSlots 批量加载所有项目的时段数据
+func (h *Handler) loadAllTimeSlots(projects []models.Project, projectIDs []string) error {
+	if len(projectIDs) == 0 {
+		return nil
+	}
+
+	// 构建IN查询的占位符
+	placeholders := make([]string, len(projectIDs))
+	args := make([]interface{}, len(projectIDs))
+	for i, id := range projectIDs {
+		placeholders[i] = "$" + strconv.Itoa(i+1)
+		args[i] = id
+	}
+
+	query := `
+		SELECT project_id, user_id, role_key, start_date, end_date, description
+		FROM time_slots 
+		WHERE project_id IN (` + strings.Join(placeholders, ",") + `)
+		ORDER BY project_id, role_key, user_id, start_date
+	`
+
+	rows, err := h.db.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// 创建项目ID到索引的映射
+	projectIndexMap := make(map[string]int)
+	for i, project := range projects {
+		projectIndexMap[project.ID] = i
+	}
+
+	// 创建映射来组织时段数据
+	projectTimeSlots := make(map[string]map[string]map[string][]models.TimeSlot)
+
+	for rows.Next() {
+		var projectID, userID, roleKey, description string
+		var startDate, endDate *string
+
+		err := rows.Scan(&projectID, &userID, &roleKey, &startDate, &endDate, &description)
+		if err != nil {
+			return err
+		}
+
+		timeSlot := models.TimeSlot{
+			ID:          "slot_" + userID + "_" + roleKey,
+			Description: &description,
+		}
+
+		if startDate != nil {
+			timeSlot.StartDate = *startDate
+		}
+		if endDate != nil {
+			timeSlot.EndDate = *endDate
+		}
+
+		if projectTimeSlots[projectID] == nil {
+			projectTimeSlots[projectID] = make(map[string]map[string][]models.TimeSlot)
+		}
+		if projectTimeSlots[projectID][roleKey] == nil {
+			projectTimeSlots[projectID][roleKey] = make(map[string][]models.TimeSlot)
+		}
+		projectTimeSlots[projectID][roleKey][userID] = append(projectTimeSlots[projectID][roleKey][userID], timeSlot)
+	}
+
+	// 将时段数据分配给对应的项目和团队成员
+	for projectID, timeSlotMap := range projectTimeSlots {
+		if projectIndex, exists := projectIndexMap[projectID]; exists {
+			project := &projects[projectIndex]
+			h.assignTimeSlotsToMembers(project.ProductManagers, timeSlotMap["productManagers"])
+			h.assignTimeSlotsToMembers(project.BackendDevelopers, timeSlotMap["backendDevelopers"])
+			h.assignTimeSlotsToMembers(project.FrontendDevelopers, timeSlotMap["frontendDevelopers"])
+			h.assignTimeSlotsToMembers(project.QaTesters, timeSlotMap["qaTesters"])
+		}
+	}
+
+	return nil
 }
 
 // CreateProject 创建新项目
@@ -87,8 +265,10 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	// 生成唯一ID
-	project.ID = "p" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	// 生成唯一ID和设置创建时间
+	now := time.Now()
+	project.ID = "p" + strconv.FormatInt(now.UnixNano(), 10)
+	project.CreatedAt = now.Format(time.RFC3339)
 
 	// 处理必填字段的默认值
 	if project.Name == "" {
@@ -135,6 +315,14 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		project.ChangeLog = []models.ChangeLogEntry{}
 	}
 
+	// 开始事务
+	tx, err := h.db.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		return
+	}
+	defer tx.Rollback()
+
 	// 序列化JSONB字段
 	productManagersJSON, _ := json.Marshal(project.ProductManagers)
 	backendDevelopersJSON, _ := json.Marshal(project.BackendDevelopers)
@@ -143,23 +331,68 @@ func (h *Handler) CreateProject(c *gin.Context) {
 	commentsJSON, _ := json.Marshal(project.Comments)
 	changeLogJSON, _ := json.Marshal(project.ChangeLog)
 
+	// 插入项目基本信息
 	query := `
 		INSERT INTO projects (
 			id, name, priority, business_problem, key_result_ids, weekly_update, 
 			last_week_update, status, product_managers, backend_developers, 
 			frontend_developers, qa_testers, proposal_date, launch_date, 
-			followers, comments, change_log
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`
+			created_at, followers, comments, change_log
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`
 
-	_, err := h.db.Exec(query,
+	_, err = tx.Exec(query,
 		project.ID, project.Name, project.Priority, project.BusinessProblem,
 		pq.Array(project.KeyResultIds), project.WeeklyUpdate, project.LastWeekUpdate,
 		project.Status, productManagersJSON, backendDevelopersJSON,
 		frontendDevelopersJSON, qaTestersJSON, project.ProposalDate, project.LaunchDate,
-		pq.Array(project.Followers), commentsJSON, changeLogJSON)
+		project.CreatedAt, pq.Array(project.Followers), commentsJSON, changeLogJSON)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 插入多时段数据
+	timeSlotQuery := `
+		INSERT INTO time_slots (id, project_id, user_id, role_key, start_date, end_date, description)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	// 处理各个角色的多时段数据
+	roleMap := map[string][]models.TeamMember{
+		"productManagers":    project.ProductManagers,
+		"backendDevelopers":  project.BackendDevelopers,
+		"frontendDevelopers": project.FrontendDevelopers,
+		"qaTesters":          project.QaTesters,
+	}
+
+	for roleKey, members := range roleMap {
+		for _, member := range members {
+			for _, timeSlot := range member.TimeSlots {
+				slotID := "slot_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+
+				var startDate, endDate interface{}
+				if timeSlot.StartDate != "" {
+					startDate = timeSlot.StartDate
+				}
+				if timeSlot.EndDate != "" {
+					endDate = timeSlot.EndDate
+				}
+
+				_, err = tx.Exec(timeSlotQuery,
+					slotID, project.ID, member.UserID, roleKey,
+					startDate, endDate, timeSlot.Description)
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save time slots: " + err.Error()})
+					return
+				}
+			}
+		}
+	}
+
+	// 提交事务
+	if err = tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
 
@@ -267,6 +500,14 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		existing.ChangeLog = updates.ChangeLog
 	}
 
+	// 开始事务
+	tx, err := h.db.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		return
+	}
+	defer tx.Rollback()
+
 	// 序列化JSONB字段
 	productManagersJSON, _ := json.Marshal(existing.ProductManagers)
 	backendDevelopersJSON, _ := json.Marshal(existing.BackendDevelopers)
@@ -275,6 +516,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 	commentsJSON, _ := json.Marshal(existing.Comments)
 	changeLogJSON, _ := json.Marshal(existing.ChangeLog)
 
+	// 更新项目基本信息
 	updateQuery := `
 		UPDATE projects SET 
 			name = $2, priority = $3, business_problem = $4, key_result_ids = $5, 
@@ -286,7 +528,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		WHERE id = $1
 	`
 
-	_, err = h.db.Exec(updateQuery,
+	_, err = tx.Exec(updateQuery,
 		projectID, existing.Name, existing.Priority, existing.BusinessProblem,
 		pq.Array(existing.KeyResultIds), existing.WeeklyUpdate, existing.LastWeekUpdate,
 		existing.Status, productManagersJSON, backendDevelopersJSON,
@@ -295,6 +537,62 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 检查是否有团队成员更新，如果有则更新时段数据
+	hasTeamUpdates := updates.ProductManagers != nil || updates.BackendDevelopers != nil ||
+		updates.FrontendDevelopers != nil || updates.QaTesters != nil
+
+	if hasTeamUpdates {
+		// 删除现有的时段数据
+		_, err = tx.Exec("DELETE FROM time_slots WHERE project_id = $1", projectID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete existing time slots: " + err.Error()})
+			return
+		}
+
+		// 插入新的时段数据
+		timeSlotQuery := `
+			INSERT INTO time_slots (id, project_id, user_id, role_key, start_date, end_date, description)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+		roleMap := map[string][]models.TeamMember{
+			"productManagers":    existing.ProductManagers,
+			"backendDevelopers":  existing.BackendDevelopers,
+			"frontendDevelopers": existing.FrontendDevelopers,
+			"qaTesters":          existing.QaTesters,
+		}
+
+		for roleKey, members := range roleMap {
+			for _, member := range members {
+				for _, timeSlot := range member.TimeSlots {
+					slotID := "slot_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+
+					var startDate, endDate interface{}
+					if timeSlot.StartDate != "" {
+						startDate = timeSlot.StartDate
+					}
+					if timeSlot.EndDate != "" {
+						endDate = timeSlot.EndDate
+					}
+
+					_, err = tx.Exec(timeSlotQuery,
+						slotID, projectID, member.UserID, roleKey,
+						startDate, endDate, timeSlot.Description)
+
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save time slots: " + err.Error()})
+						return
+					}
+				}
+			}
+		}
+	}
+
+	// 提交事务
+	if err = tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
 
@@ -538,10 +836,19 @@ func (h *Handler) insertEmployee(employee models.Employee) error {
 	userID := strconv.Itoa(employee.EmployeeID)
 	avatarURL := fmt.Sprintf("https://picsum.photos/seed/%d/40/40", employee.EmployeeID)
 
-	insertQuery := "INSERT INTO users (id, name, email, avatar_url) VALUES ($1, $2, $3, $4)"
-	_, err := h.db.Exec(insertQuery, userID, employee.RealName, employee.Email, avatarURL)
+	// 使用 UPSERT 语法 (INSERT ... ON CONFLICT ... DO UPDATE)
+	upsertQuery := `
+		INSERT INTO users (id, name, email, avatar_url) 
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id) 
+		DO UPDATE SET 
+			name = EXCLUDED.name,
+			email = EXCLUDED.email,
+			avatar_url = EXCLUDED.avatar_url
+	`
+	_, err := h.db.Exec(upsertQuery, userID, employee.RealName, employee.Email, avatarURL)
 	if err != nil {
-		return fmt.Errorf("failed to insert user: %w", err)
+		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 
 	return nil
@@ -660,4 +967,68 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenResponse)
+}
+
+// SyncEmployeeData 手动触发员工数据同步
+func (h *Handler) SyncEmployeeData(c *gin.Context) {
+	// 调用员工数据同步函数
+	if err := h.syncEmployeeData(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to sync employee data",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Employee data sync completed successfully",
+		"timestamp": time.Now().Format(time.RFC3339),
+	})
+}
+
+// syncEmployeeData 员工数据同步逻辑（从scheduler包复制）
+func (h *Handler) syncEmployeeData() error {
+	const maxRetries = 3
+	const retryDelay = time.Minute
+
+	var employeeResp models.EmployeeResponse
+	var err error
+
+	// 重试机制
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		fmt.Printf("Attempting to fetch employee data (attempt %d/%d)\n", attempt, maxRetries)
+
+		employeeResp, err = h.fetchEmployeeData()
+		if err == nil {
+			break
+		}
+
+		fmt.Printf("Attempt %d failed: %v\n", attempt, err)
+		if attempt < maxRetries {
+			fmt.Printf("Retrying in %v...\n", retryDelay)
+			time.Sleep(retryDelay)
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to fetch employee data after %d attempts: %w", maxRetries, err)
+	}
+
+	// 处理员工数据
+	employees, exists := employeeResp.EmployeeList["28508728"]
+	if !exists {
+		return fmt.Errorf("department 28508728 not found in response")
+	}
+
+	fmt.Printf("Processing %d employees\n", len(employees))
+
+	for _, employee := range employees {
+		if err := h.insertEmployee(employee); err != nil {
+			fmt.Printf("Failed to insert employee %d: %v\n", employee.EmployeeID, err)
+			continue
+		}
+	}
+
+	fmt.Printf("Successfully processed %d employees\n", len(employees))
+	return nil
 }

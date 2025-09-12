@@ -174,6 +174,17 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     };
     setProjects(prev => [newProject, ...prev]);
     setEditingId(newProject.id);
+    
+    // 立即滚动到表格顶部，确保新建项目可见
+    requestAnimationFrame(() => {
+      const tableContainer = document.querySelector('[data-table-container]');
+      if (tableContainer) {
+        tableContainer.scrollTo({ top: 0, behavior: 'auto' });
+      } else {
+        // 如果找不到表格容器，滚动整个页面到顶部
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    });
   }, []);
 
   const handleUpdateProject = useCallback(async (projectId: string, field: keyof Project, value: any) => {
@@ -265,7 +276,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
             newValue: formatValue(value),
             changedAt: new Date().toISOString(),
         };
-        updates.changeLog = [newLogEntry, ...projectToUpdate.changeLog];
+        updates.changeLog = [newLogEntry, ...(projectToUpdate.changeLog || [])];
     }
 
     // Optimistically update local state for a responsive UI.
@@ -301,7 +312,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
             newValue: projectToSave.name,
             changedAt: new Date().toISOString(),
         };
-        const projectWithLog = { ...projectToSave, changeLog: [creationLogEntry, ...projectToSave.changeLog] };
+        const projectWithLog = { ...projectToSave, changeLog: [creationLogEntry, ...(projectToSave.changeLog || [])] };
 
         await api.createProject(projectWithLog);
         await fetchData();

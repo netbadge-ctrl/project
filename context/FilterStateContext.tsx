@@ -32,6 +32,9 @@ export interface FilterState {
     searchTerm: string;
     selectedStatuses: string[];
     selectedOwners: string[];
+    selectedPriorities: string[];
+    selectedKrIds: string[];
+    selectedParticipantIds: string[];
     showCompleted: boolean;
   };
   
@@ -74,10 +77,13 @@ const defaultFilterState: FilterState = {
     viewDate: new Date().toISOString(),
   },
   weeklyMeeting: {
+    searchTerm: '',
+    selectedStatuses: [],
+    selectedOwners: [],
     selectedPriorities: [],
     selectedKrIds: [],
     selectedParticipantIds: [],
-    selectedStatuses: [],
+    showCompleted: false,
   },
   projectOverview: {
     searchTerm: '',

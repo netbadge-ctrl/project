@@ -73,7 +73,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-[#2d2d2d] p-4 rounded-lg w-72 text-gray-800 dark:text-gray-300">
+    <div className="bg-white dark:bg-[#2d2d2d] p-4 rounded-lg w-72 text-gray-800 dark:text-gray-300 shadow-lg border border-gray-200 dark:border-[#4a4a4a]">
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setCurrentDate(new Date(year, month - 1))} className="p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-[#3a3a3a]"><IconChevronLeft className="w-5 h-5"/></button>
         <div className="font-semibold text-gray-900 dark:text-white">{`${year}年 ${month + 1}月`}</div>
