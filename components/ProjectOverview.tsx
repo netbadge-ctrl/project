@@ -123,6 +123,13 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         return true;
       }
       
+      // 新创建的项目（最近1小时内创建的）也始终显示，不受筛选条件影响
+      const projectCreatedTime = project.createdAt ? new Date(project.createdAt).getTime() : 0;
+      const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1小时前
+      if (projectCreatedTime > oneHourAgo) {
+        return true;
+      }
+      
       // 状态筛选 - 使用Set快速查找
       if (statusSet.size > 0 && !statusSet.has(project.status)) {
         return false;
@@ -174,6 +181,23 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
     // 然后排序项目
     return filtered.sort((a, b) => {
+      // 优先处理新创建的项目（最近1小时内）
+      const aCreatedTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreatedTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      
+      const aIsNew = aCreatedTime > oneHourAgo;
+      const bIsNew = bCreatedTime > oneHourAgo;
+      
+      // 如果一个是新项目，一个不是，新项目排在前面
+      if (aIsNew && !bIsNew) return -1;
+      if (!aIsNew && bIsNew) return 1;
+      
+      // 如果两个都是新项目，直接按创建时间排序（最新的在前）
+      if (aIsNew && bIsNew) {
+        return bCreatedTime - aCreatedTime;
+      }
+      
       let comparison = 0;
       
       switch (sortConfig.field) {
@@ -225,7 +249,13 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           // 按真正的创建时间排序，使用createdAt字段
           const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          comparison = bTime - aTime; // 默认倒序（最新创建的在前）
+          
+          // 如果两个项目的创建时间相同（批量导入的历史数据），则按项目名称排序
+          if (aTime === bTime) {
+            comparison = a.name.localeCompare(b.name, 'zh-CN');
+          } else {
+            comparison = bTime - aTime; // 默认倒序（最新创建的在前）
+          }
           break;
       }
       

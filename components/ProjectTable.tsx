@@ -526,6 +526,8 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
 
   // 新建项目的本地状态
   const [localProject, setLocalProject] = useState<Project>(project);
+  // 防重复保存状态
+  const [isSaving, setIsSaving] = useState(false);
 
   // 当项目prop变化时更新本地状态 - 优化依赖
   useEffect(() => {
@@ -563,10 +565,17 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
     }
   }, [project.isNew, project.id, onUpdateProject]);
 
-  const handleSaveNewProject = useCallback(() => {
-    // 保存时使用本地状态的数据
-    onSave(localProject);
-  }, [localProject, onSave]);
+  const handleSaveNewProject = useCallback(async () => {
+    if (isSaving) return; // 防止重复点击
+    
+    setIsSaving(true);
+    try {
+      // 保存时使用本地状态的数据
+      await onSave(localProject);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [localProject, onSave, isSaving]);
 
   // 使用 useMemo 缓存静态数据
   const roleInfo = useMemo(() => [
@@ -628,7 +637,17 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
         <td style={getTdStyle(12)} className={getTdClassName(12, true)}><DatePicker selectedDate={localProject.launchDate} onSelectDate={(val) => handleUpdateField('launchDate', val)} align="right" /></td>
         <td style={getTdStyle(13)} className={getTdClassName(13, true)}>
           <div className="flex items-center justify-center gap-2">
-            <button onClick={handleSaveNewProject} className="p-1 text-green-500 hover:text-green-400"><IconCheck className="w-5 h-5"/></button>
+            <button 
+              onClick={handleSaveNewProject} 
+              disabled={isSaving}
+              className={`p-1 ${isSaving ? 'text-gray-400 cursor-not-allowed' : 'text-green-500 hover:text-green-400'}`}
+            >
+              {isSaving ? (
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-green-500 rounded-full animate-spin"></div>
+              ) : (
+                <IconCheck className="w-5 h-5"/>
+              )}
+            </button>
             <button onClick={() => onCancel(project.id)} className="p-1 text-red-500 hover:text-red-400"><IconX className="w-5 h-5"/></button>
           </div>
         </td>

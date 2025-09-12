@@ -302,7 +302,6 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     // 移除新项目的KR关联校验限制
 
     setIsLoading(true);
-    setEditingId(null);
     try {
         const creationLogEntry: ChangeLogEntry = {
             id: `cl_${Date.now()}`,
@@ -316,8 +315,12 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
 
         await api.createProject(projectWithLog);
         await fetchData();
+        // 确保在数据刷新后清除编辑状态
+        setEditingId(null);
     } catch (error) {
         console.error("Failed to save new project", error);
+        // 如果保存失败，也要清除编辑状态
+        setEditingId(null);
     } finally {
         setIsLoading(false);
     }
