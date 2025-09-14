@@ -138,7 +138,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
                       {user && user.id !== currentUser.id && (
                         <button 
                           onClick={handleReplyToComment}
-                          className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-blue-200 dark:border-blue-600"
                         >
                           回复
                         </button>

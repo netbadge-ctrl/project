@@ -86,6 +86,55 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
             api.fetchOkrSets(),
             api.fetchUsers()
         ]);
+        // 为"最后一次测试"项目添加陈雨的测试评论
+        console.log('开始检查项目和用户数据...');
+        console.log('项目数量:', fetchedProjects.length);
+        console.log('用户数量:', fetchedUsers.length);
+        console.log('所有项目名称:', fetchedProjects.map(p => p.name));
+        console.log('所有用户名称:', fetchedUsers.map(u => u.name));
+        
+        if (fetchedProjects.length > 0 && fetchedUsers.length > 0) {
+            const testProject = fetchedProjects.find(p => p.name === '最后一次测试');
+            const chenYuUser = fetchedUsers.find(u => u.name === '陈雨');
+            
+            console.log('找到的测试项目:', testProject ? testProject.name : '未找到');
+            console.log('找到的陈雨用户:', chenYuUser ? chenYuUser.name : '未找到');
+            console.log('当前用户:', currentUser.name);
+            
+            if (testProject) {
+                console.log('测试项目现有评论数量:', testProject.comments ? testProject.comments.length : 0);
+            }
+            
+            if (testProject && chenYuUser) {
+                // 清空现有评论，添加陈雨的评论
+                const testComments = [
+                    {
+                        id: 'chenyu_comment_1',
+                        userId: chenYuUser.id,
+                        text: '这个项目的测试用例我已经review过了，整体质量不错，建议再补充一些边界条件的测试。',
+                        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3小时前
+                        mentions: [],
+                        readBy: [chenYuUser.id]
+                    },
+                    {
+                        id: 'chenyu_comment_2',
+                        userId: chenYuUser.id,
+                        text: '另外，我觉得性能测试这块还需要加强一下，特别是并发场景下的表现。',
+                        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1小时前
+                        mentions: [],
+                        readBy: [chenYuUser.id]
+                    }
+                ];
+                
+                testProject.comments = testComments;
+                console.log(`✅ 已为"${testProject.name}"项目添加陈雨的评论，评论数量:`, testProject.comments.length);
+            } else {
+                console.log('❌ 未添加测试评论，原因:');
+                if (!testProject) console.log('- 未找到"最后一次测试"项目');
+                if (!chenYuUser) console.log('- 未找到"陈雨"用户');
+            }
+        }
+        
         setProjects(fetchedProjects);
         setOkrSets(fetchedOkrSets);
         

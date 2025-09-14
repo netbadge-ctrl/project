@@ -73,7 +73,7 @@ const defaultFilterState: FilterState = {
     selectedKrIds: [],
     selectedStatuses: [],
     selectedPriorities: [],
-    granularity: 'month' as 'week' | 'month',
+    granularity: 'week' as 'week' | 'month',
     viewDate: new Date().toISOString(),
   },
   weeklyMeeting: {
