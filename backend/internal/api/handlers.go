@@ -623,7 +623,7 @@ func (h *Handler) DeleteProject(c *gin.Context) {
 
 // GetUsers 获取所有用户
 func (h *Handler) GetUsers(c *gin.Context) {
-	rows, err := h.db.Query("SELECT id, name, email, avatar_url FROM users ORDER BY name")
+	rows, err := h.db.Query("SELECT id, name, email, avatar_url, dept_id, dept_name FROM users ORDER BY dept_name, name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -633,7 +633,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL)
+		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.DeptID, &user.DeptName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -839,22 +839,50 @@ func (h *Handler) insertEmployee(employee models.Employee) error {
 	userID := strconv.Itoa(employee.EmployeeID)
 	avatarURL := fmt.Sprintf("https://picsum.photos/seed/%d/40/40", employee.EmployeeID)
 
+	// 根据部门ID获取部门名称
+	deptName := h.getDepartmentName(employee.DeptID)
+
 	// 使用 UPSERT 语法 (INSERT ... ON CONFLICT ... DO UPDATE)
 	upsertQuery := `
-		INSERT INTO users (id, name, email, avatar_url) 
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users (id, name, email, avatar_url, dept_id, dept_name) 
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (id) 
 		DO UPDATE SET 
 			name = EXCLUDED.name,
 			email = EXCLUDED.email,
-			avatar_url = EXCLUDED.avatar_url
+			avatar_url = EXCLUDED.avatar_url,
+			dept_id = EXCLUDED.dept_id,
+			dept_name = EXCLUDED.dept_name
 	`
-	_, err := h.db.Exec(upsertQuery, userID, employee.RealName, employee.Email, avatarURL)
+	_, err := h.db.Exec(upsertQuery, userID, employee.RealName, employee.Email, avatarURL, employee.DeptID, deptName)
 	if err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
 	}
 
 	return nil
+}
+
+// getDepartmentName 根据部门ID获取部门名称
+func (h *Handler) getDepartmentName(deptID int) string {
+	// 根据实际的部门ID映射部门名称
+	switch deptID {
+	case 28508728:
+		return "技术部"
+	case 28508731:
+		return "后端开发部"
+	case 28508729:
+		return "前端开发部"
+	case 28507849:
+		return "测试部"
+	case 28508815:
+		return "产品部"
+	case 28508730:
+		return "运维部"
+	case 28508521:
+		return "架构部"
+	default:
+		return fmt.Sprintf("部门%d", deptID)
+	}
 }
 
 // CheckAuth 检查用户认证状态

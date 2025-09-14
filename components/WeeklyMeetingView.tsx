@@ -41,7 +41,7 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
     const filteredAndSortedProjects = useMemo(() => {
         // 1. Initial filter for active projects
         let filteredProjects = (projects || []).filter(p => 
-            p.status !== ProjectStatus.Launched && 
+            p.status !== ProjectStatus.Completed && 
             p.status !== ProjectStatus.NotStarted &&
             p.status !== ProjectStatus.Paused
         );
@@ -89,22 +89,7 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
                 return priorityA - priorityB;
             }
 
-            // 2. Sort by OKR ID
-            const getOkrId = (project: Project) => {
-                const keyResultIds = project.keyResultIds || [];
-                if (keyResultIds.length > 0) {
-                    const firstKrId = keyResultIds[0];
-                    return keyResultToOkrMap.get(firstKrId) || 'zzzz';
-                }
-                return 'zzzz';
-            };
-            const okrA = getOkrId(a);
-            const okrB = getOkrId(b);
-            if (okrA.localeCompare(okrB) !== 0) {
-                return okrA.localeCompare(okrB);
-            }
-
-            // 3. Sort by Product Manager name
+            // 2. Sort by Product Manager name
             const getPmName = (project: Project) => {
                 const productManagers = project.productManagers || [];
                 if (productManagers.length > 0) {
@@ -119,20 +104,36 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
                 return pmA.localeCompare(pmB);
             }
 
+            // 3. Sort by OKR ID
+            const getOkrId = (project: Project) => {
+                const keyResultIds = project.keyResultIds || [];
+                if (keyResultIds.length > 0) {
+                    const firstKrId = keyResultIds[0];
+                    return keyResultToOkrMap.get(firstKrId) || 'zzzz';
+                }
+                return 'zzzz';
+            };
+            const okrA = getOkrId(a);
+            const okrB = getOkrId(b);
+            if (okrA.localeCompare(okrB) !== 0) {
+                return okrA.localeCompare(okrB);
+            }
+
             // 4. Sort by Status
             const statusOrder: Record<ProjectStatus, number> = {
-                [ProjectStatus.Discussion]: 0,
-                [ProjectStatus.RequirementsDone]: 1,
-                [ProjectStatus.ReviewDone]: 2,
-                [ProjectStatus.ProductDesign]: 3,
-                [ProjectStatus.InProgress]: 4,
-                [ProjectStatus.ProjectInProgress]: 5,
-                [ProjectStatus.DevDone]: 6,
-                [ProjectStatus.Testing]: 7,
-                [ProjectStatus.TestDone]: 8,
-                [ProjectStatus.NotStarted]: 9,
-                [ProjectStatus.Launched]: 10,
-                [ProjectStatus.Paused]: 11,
+                [ProjectStatus.NotStarted]: 0,
+                [ProjectStatus.Discussion]: 1,
+                [ProjectStatus.ProductDesign]: 2,
+                [ProjectStatus.RequirementsDone]: 3,
+                [ProjectStatus.ReviewDone]: 4,
+                [ProjectStatus.InProgress]: 5,
+                [ProjectStatus.ProjectInProgress]: 6,
+                [ProjectStatus.DevDone]: 7,
+                [ProjectStatus.Testing]: 8,
+                [ProjectStatus.TestDone]: 9,
+                [ProjectStatus.LaunchedThisWeek]: 10,
+                [ProjectStatus.Completed]: 11,
+                [ProjectStatus.Paused]: 12,
             };
             const statusA = statusOrder[a.status];
             const statusB = statusOrder[b.status];

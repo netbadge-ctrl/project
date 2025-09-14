@@ -4,6 +4,8 @@ export interface User {
   name: string;
   email: string;
   avatarUrl: string;
+  deptId: number;
+  deptName: string;
 }
 
 // 单个时段配置

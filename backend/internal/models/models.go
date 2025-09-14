@@ -11,6 +11,8 @@ type User struct {
 	Name      string `json:"name" db:"name"`
 	Email     string `json:"email" db:"email"`
 	AvatarURL string `json:"avatarUrl" db:"avatar_url"`
+	DeptID    int    `json:"deptId" db:"dept_id"`
+	DeptName  string `json:"deptName" db:"dept_name"`
 }
 
 // TimeSlot 单个时段配置

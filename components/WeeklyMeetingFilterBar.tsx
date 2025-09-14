@@ -40,15 +40,19 @@ export const WeeklyMeetingFilterBar: React.FC<WeeklyMeetingFilterBarProps> = ({
         .map(u => ({ value: u.id, label: u.name }));
     
     const statusOptions = [
+        ProjectStatus.NotStarted,
         ProjectStatus.Discussion,
+        ProjectStatus.ProductDesign,
         ProjectStatus.RequirementsDone,
         ProjectStatus.ReviewDone,
-        ProjectStatus.ProductDesign,
         ProjectStatus.InProgress,
+        ProjectStatus.ProjectInProgress,
         ProjectStatus.DevDone,
         ProjectStatus.Testing,
         ProjectStatus.TestDone,
-        ProjectStatus.ProjectInProgress,
+        ProjectStatus.LaunchedThisWeek,
+        ProjectStatus.Completed,
+        ProjectStatus.Paused,
     ].map(s => ({ value: s, label: s }));
     
     return (

@@ -62,7 +62,9 @@ func createTables(db *sql.DB) error {
 			id VARCHAR(255) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
 			email VARCHAR(255),
-			avatar_url VARCHAR(255)
+			avatar_url VARCHAR(255),
+			dept_id INTEGER,
+			dept_name VARCHAR(255)
 		);`
 
 		okrSetsTable = `
@@ -100,7 +102,9 @@ func createTables(db *sql.DB) error {
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			email TEXT,
-			avatar_url TEXT
+			avatar_url TEXT,
+			dept_id INTEGER,
+			dept_name TEXT
 		);`
 
 		okrSetsTable = `

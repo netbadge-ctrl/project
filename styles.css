@@ -82,7 +82,7 @@ table td:nth-child(3) span, table td:nth-child(4) span {
   display: grid;
   gap: 1rem;
   width: 100%;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* 确保所有卡片等宽等高填满容器 */
@@ -91,8 +91,6 @@ table td:nth-child(3) span, table td:nth-child(4) span {
   min-width: 0 !important;
   max-width: none !important;
   height: 100% !important;
-  min-height: 500px !important;
-  max-height: 600px !important;
   flex: 1 1 0% !important;
   box-sizing: border-box !important;
   display: flex !important;
@@ -265,6 +263,33 @@ table td:nth-child(3) span, table td:nth-child(4) span {
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
+  max-height: 7.5rem; /* 5 lines * 1.5rem line-height */
+}
+
+/* 周会视图专用的内容区域样式 */
+.weekly-update-content.line-clamp-5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+  max-height: 7.5rem;
+}
+
+.weekly-update-content.line-clamp-5 * {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.weekly-update-content.line-clamp-5 div,
+.weekly-update-content.line-clamp-5 p {
+  display: inline;
+}
+
+.weekly-update-content.line-clamp-5 br {
+  display: inline;
+  content: " ";
 }
 
 /* 自适应文本区域过渡动画 */

@@ -189,7 +189,30 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
     
     const relevantUsers = filteredUsers;
 
-    return relevantUsers.map(user => {
+    // 调试：检查用户数据是否包含部门信息
+    console.log('KanbanView - 用户数据样本:', relevantUsers.slice(0, 3).map(u => ({
+      name: u.name,
+      deptId: u.deptId,
+      deptName: u.deptName
+    })));
+
+    const sortedUsers = relevantUsers.sort((a, b) => {
+      // 首先按部门名称排序
+      const deptA = a.deptName || '未知部门';
+      const deptB = b.deptName || '未知部门';
+      if (deptA !== deptB) {
+        return deptA.localeCompare(deptB, 'zh-CN');
+      }
+      // 同部门内按姓名排序
+      return a.name.localeCompare(b.name, 'zh-CN');
+    });
+
+    console.log('KanbanView - 排序后用户:', sortedUsers.slice(0, 5).map(u => ({
+      name: u.name,
+      deptName: u.deptName
+    })));
+
+    return sortedUsers.map(user => {
       const assignedProjects: { project: Project, role: string, startDate: string, endDate: string, description?: string }[] = [];
       relevantProjects.forEach(p => {
         const roles: (keyof Project)[] = ['productManagers', 'backendDevelopers', 'frontendDevelopers', 'qaTesters'];
@@ -340,7 +363,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                               {item.description && <span className="ml-1 text-white/70">- {item.description}</span>}
                             </span>
                             <div className="tooltip bg-gray-900 text-white text-xs rounded py-1 px-2 absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none transition-opacity z-50 whitespace-nowrap group-hover/item:opacity-100">
-                              {item.project.name}: {item.startDate} ~ {item.endDate}
+                              {item.project.name}: {item.startDate.split('T')[0]} ~ {item.endDate.split('T')[0]}
                               {item.description && <br />}
                               {item.description && <span className="text-gray-300">{item.description}</span>}
                             </div>

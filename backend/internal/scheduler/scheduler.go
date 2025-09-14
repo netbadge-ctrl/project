@@ -120,6 +120,9 @@ func upsertEmployee(db *sql.DB, employee models.Employee) error {
 	userID := strconv.Itoa(employee.EmployeeID)
 	avatarURL := fmt.Sprintf("https://picsum.photos/seed/%d/40/40", employee.EmployeeID)
 
+	// 根据部门ID获取部门名称
+	deptName := getDepartmentName(employee.DeptID)
+
 	// 检查用户是否存在
 	var exists bool
 	checkQuery := "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)"
@@ -130,16 +133,16 @@ func upsertEmployee(db *sql.DB, employee models.Employee) error {
 
 	if exists {
 		// 更新现有用户
-		updateQuery := "UPDATE users SET name = $1, email = $2 WHERE id = $3"
-		_, err = db.Exec(updateQuery, employee.RealName, employee.Email, userID)
+		updateQuery := "UPDATE users SET name = $1, email = $2, dept_id = $3, dept_name = $4 WHERE id = $5"
+		_, err = db.Exec(updateQuery, employee.RealName, employee.Email, employee.DeptID, deptName, userID)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
 		}
 		log.Printf("Updated user: %s (%s)", employee.RealName, userID)
 	} else {
 		// 插入新用户
-		insertQuery := "INSERT INTO users (id, name, email, avatar_url) VALUES ($1, $2, $3, $4)"
-		_, err = db.Exec(insertQuery, userID, employee.RealName, employee.Email, avatarURL)
+		insertQuery := "INSERT INTO users (id, name, email, avatar_url, dept_id, dept_name) VALUES ($1, $2, $3, $4, $5, $6)"
+		_, err = db.Exec(insertQuery, userID, employee.RealName, employee.Email, avatarURL, employee.DeptID, deptName)
 		if err != nil {
 			return fmt.Errorf("failed to insert user: %w", err)
 		}
@@ -147,4 +150,27 @@ func upsertEmployee(db *sql.DB, employee models.Employee) error {
 	}
 
 	return nil
+}
+
+// getDepartmentName 根据部门ID获取部门名称
+func getDepartmentName(deptID int) string {
+	// 根据实际的部门ID映射部门名称
+	switch deptID {
+	case 28508728:
+		return "技术部"
+	case 28508731:
+		return "后端开发部"
+	case 28508729:
+		return "前端开发部"
+	case 28507849:
+		return "测试部"
+	case 28508815:
+		return "产品部"
+	case 28508730:
+		return "运维部"
+	case 28508521:
+		return "架构部"
+	default:
+		return fmt.Sprintf("部门%d", deptID)
+	}
 }

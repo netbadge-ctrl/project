@@ -328,7 +328,7 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
         <div className="relative update-tooltip-container">
             <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
             <div
-                className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[80px] max-h-[120px] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed"
+                className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[5rem] max-h-[7.5rem] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed line-clamp-5"
                 dangerouslySetInnerHTML={{ __html: content }}
                 onClick={handleClick}
             />
@@ -409,10 +409,10 @@ const BusinessProblemDisplay: React.FC<{businessProblem: string, projectId: stri
         <div className="relative business-problem-tooltip-container">
             <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">解决的业务问题</h4>
             <div 
-                className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg text-sm text-gray-800 dark:text-gray-300 h-20 overflow-hidden cursor-pointer leading-relaxed flex items-start"
+                className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg text-sm text-gray-800 dark:text-gray-300 min-h-[5rem] max-h-[7.5rem] overflow-hidden cursor-pointer leading-relaxed flex items-start"
                 onClick={handleClick}
             >
-                <p className="whitespace-pre-wrap line-clamp-3 w-full">
+                <p className="whitespace-pre-wrap line-clamp-5 w-full">
                     {content === '无' ? <span className="text-gray-400 dark:text-gray-500 italic">无</span> : content}
                 </p>
             </div>
