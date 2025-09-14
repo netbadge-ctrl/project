@@ -36,18 +36,45 @@ table td {
   border-bottom: 1px solid rgb(54 54 54) !important;
 }
 
-/* 确保锁定列也有边框 */
+/* 确保锁定列也有横向分隔线（行与行之间） */
 table td[style*="position: sticky"] {
   border-bottom: 1px solid rgb(229 231 235) !important;
+  box-shadow: inset 0 -1px 0 0 rgb(229 231 235) !important;
 }
 
 .dark table td[style*="position: sticky"] {
+  border-bottom: 1px solid rgb(54 54 54) !important;
+  box-shadow: inset 0 -1px 0 0 rgb(54 54 54) !important;
+}
+
+/* 强制锁定列边框显示 */
+table tbody tr td[style*="position: sticky"] {
+  border-bottom: 1px solid rgb(229 231 235) !important;
+}
+
+.dark table tbody tr td[style*="position: sticky"] {
   border-bottom: 1px solid rgb(54 54 54) !important;
 }
 
 /* 防止状态和优先级列折行 */
 .status-cell, .priority-cell {
   white-space: nowrap !important;
+}
+
+/* 确保状态和优先级徽章不折行 */
+.status-cell span, .priority-cell span {
+  white-space: nowrap !important;
+  display: inline-block !important;
+}
+
+/* 表格第3列（状态）和第4列（优先级）强制不折行 */
+table td:nth-child(3), table td:nth-child(4) {
+  white-space: nowrap !important;
+}
+
+table td:nth-child(3) span, table td:nth-child(4) span {
+  white-space: nowrap !important;
+  display: inline-block !important;
 }
 
 /* 周会视图网格布局 - 强制等宽分布 */

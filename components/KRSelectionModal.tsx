@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { OKR } from '../types';
 import { IconX, IconCheck } from './Icons';
 
@@ -38,6 +39,7 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
   };
 
   const handleSave = () => {
+    console.log('KR Selection Modal - Save clicked, selection:', currentSelection);
     onSave(currentSelection);
     onClose();
   };
@@ -49,25 +51,70 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
 
   if (!isOpen) return null;
 
-  if (useDropdown && triggerRef) {
-    // 下拉菜单模式 - 使用简单的绝对定位
-    return (
+  // 弹窗固定在页面中间
+  const getModalPosition = () => {
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    };
+  };
+
+  const modalContent = (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999999,
+      pointerEvents: 'auto'
+    }}>
+      {/* 背景遮罩 */}
       <div 
-        className="absolute top-full left-0 mt-1 bg-white dark:bg-[#2d2d2d] rounded-lg shadow-2xl w-[600px] max-h-[500px] flex flex-col border border-gray-200 dark:border-[#4a4a4a] z-[9999]"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        }}
+        onClick={handleCancel}
+      />
+      
+      {/* 弹窗内容 */}
+      <div 
+        style={{
+          position: 'fixed',
+          width: '800px',
+          maxHeight: '600px',
+          backgroundColor: 'white',
+          border: '1px solid #d1d5db',
+          borderRadius: '12px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          overflow: 'hidden',
+          zIndex: 1000000,
+          ...getModalPosition(),
+        }}
+        className="dark:bg-gray-800 dark:border-gray-600"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-gray-200 dark:border-[#4a4a4a] flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        {/* 头部 */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             选择关联的关键成果 (KR)
           </h2>
           <button
             onClick={handleCancel}
-            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <IconX className="w-5 h-5" />
+            <IconX className="w-6 h-6" />
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* 内容区域 */}
+        <div className="p-6 max-h-96 overflow-y-auto bg-white dark:bg-gray-800">
           {allOkrs.map((okr, okrIndex) => (
             <div key={okr.id} className="mb-6 last:mb-0">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-base leading-relaxed">
@@ -75,7 +122,7 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
               </h3>
               <div className="space-y-3 pl-4">
                 {okr.keyResults.map((kr, krIndex) => (
-                  <label key={kr.id} className="flex items-start gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-[#3a3a3a] transition-colors">
+                  <label key={kr.id} className="flex items-start gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <input
                       type="checkbox"
                       checked={currentSelection.includes(kr.id)}
@@ -92,148 +139,28 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
           ))}
         </div>
         
-        <div className="p-4 border-t border-gray-200 dark:border-[#4a4a4a] flex justify-end gap-2">
+        {/* 底部按钮 */}
+        <div className="p-6 border-t border-gray-200 dark:border-gray-600 flex justify-end gap-3 bg-white dark:bg-gray-800">
           <button
             onClick={handleCancel}
-            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            className="px-6 py-3 text-base text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             取消
           </button>
           <button
             onClick={handleSave}
-            className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="px-6 py-3 text-base bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center gap-2"
           >
-            <IconCheck className="w-4 h-4 inline mr-1" />
+            <IconCheck className="w-5 h-5" />
             确定
           </button>
         </div>
       </div>
-    );
-  }
-
-  // 全屏模态框模式
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#2d2d2d] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-gray-200 dark:border-[#4a4a4a]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#4a4a4a]">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              选择关联的关键成果 (KR)
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              选择与此项目相关的关键成果，可多选
-            </p>
-          </div>
-          <button
-            onClick={handleCancel}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3a] rounded-lg transition-colors"
-          >
-            <IconX className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {allOkrs.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">暂无 OKR 数据</div>
-              <div className="text-gray-500 dark:text-gray-400 text-sm">
-                请先在 OKR 管理页面创建目标和关键成果
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {allOkrs.map((okr, okrIndex) => (
-                <div key={okr.id} className="border border-gray-200 dark:border-[#4a4a4a] rounded-lg overflow-hidden">
-                  {/* OKR Header */}
-                  <div className="bg-gray-50 dark:bg-[#3a3a3a] px-4 py-3 border-b border-gray-200 dark:border-[#4a4a4a]">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                      O{okrIndex + 1}: {okr.objective}
-                    </h3>
-                  </div>
-
-                  {/* Key Results */}
-                  <div className="p-4">
-                    {okr.keyResults.length === 0 ? (
-                      <div className="text-gray-400 dark:text-gray-500 text-sm italic">
-                        此目标暂无关键成果
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {okr.keyResults.map((kr, krIndex) => {
-                          const isSelected = (currentSelection || []).includes(kr.id);
-                          return (
-                            <label
-                              key={kr.id}
-                              className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
-                                isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
-                                  : 'bg-gray-50 dark:bg-[#2a2a2a] border-gray-200 dark:border-[#4a4a4a] hover:bg-gray-100 dark:hover:bg-[#3a3a3a]'
-                              }`}
-                            >
-                              {/* Custom Checkbox */}
-                              <div className={`w-5 h-5 mt-0.5 flex-shrink-0 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                                isSelected
-                                  ? 'bg-indigo-600 border-indigo-600'
-                                  : 'bg-white dark:bg-[#2d2d2d] border-gray-300 dark:border-gray-600'
-                              }`}>
-                                {isSelected && (
-                                  <IconCheck className="w-3 h-3 text-white" />
-                                )}
-                              </div>
-
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleOption(kr.id)}
-                                className="sr-only"
-                              />
-
-                              <div className="flex-1 min-w-0">
-                                <div className={`font-medium text-sm ${
-                                  isSelected 
-                                    ? 'text-indigo-900 dark:text-indigo-100' 
-                                    : 'text-gray-900 dark:text-white'
-                                }`}>
-                                  KR{krIndex + 1}: {kr.description}
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#2a2a2a]">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            已选择 {currentSelection.length} 个关键成果
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3a3a3a] rounded-lg transition-colors font-medium"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
-            >
-              确认选择
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
+
+  // 使用 Portal 渲染到 document.body
+  return createPortal(modalContent, document.body);
 };
 
 export default KRSelectionModal;

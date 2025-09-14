@@ -105,7 +105,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   // 筛选和排序项目 - 使用高效的Set查找方式（参考看板和周会视图）
   const filteredAndSortedProjects = useMemo(() => {
     // 确保项目数组存在且去重（防止重复key错误）
-    const uniqueProjects = Array.from(
+    const uniqueProjects: Project[] = Array.from(
       new Map((projects || []).map(p => [p.id, p])).values()
     );
     
@@ -119,16 +119,11 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     // 首先筛选项目
     const filtered = uniqueProjects.filter(project => {
       // 新建的项目（处于编辑状态）始终显示，不受筛选条件影响
-      if (editingId && project.id === editingId) {
+      if ((editingId && project.id === editingId) || project.isNew) {
         return true;
       }
       
-      // 新创建的项目（最近1小时内创建的）也始终显示，不受筛选条件影响
-      const projectCreatedTime = project.createdAt ? new Date(project.createdAt).getTime() : 0;
-      const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1小时前
-      if (projectCreatedTime > oneHourAgo) {
-        return true;
-      }
+
       
       // 状态筛选 - 使用Set快速查找
       if (statusSet.size > 0 && !statusSet.has(project.status)) {
@@ -181,23 +176,6 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
     // 然后排序项目
     return filtered.sort((a, b) => {
-      // 优先处理新创建的项目（最近1小时内）
-      const aCreatedTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bCreatedTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      
-      const aIsNew = aCreatedTime > oneHourAgo;
-      const bIsNew = bCreatedTime > oneHourAgo;
-      
-      // 如果一个是新项目，一个不是，新项目排在前面
-      if (aIsNew && !bIsNew) return -1;
-      if (!aIsNew && bIsNew) return 1;
-      
-      // 如果两个都是新项目，直接按创建时间排序（最新的在前）
-      if (aIsNew && bIsNew) {
-        return bCreatedTime - aCreatedTime;
-      }
-      
       let comparison = 0;
       
       switch (sortConfig.field) {
@@ -254,12 +232,12 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           if (aTime === bTime) {
             comparison = a.name.localeCompare(b.name, 'zh-CN');
           } else {
-            comparison = bTime - aTime; // 默认倒序（最新创建的在前）
+            comparison = bTime - aTime; // 倒序（最新创建的在前）
           }
           break;
       }
       
-      return sortConfig.direction === 'asc' ? comparison : -comparison;
+      return sortConfig.direction === 'asc' ? -comparison : comparison;
     });
   }, [projects, searchTerm, selectedStatuses, selectedPriorities, selectedParticipants, selectedKrs, editingId, sortConfig]);
 

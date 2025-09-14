@@ -50,12 +50,12 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
             p.status !== ProjectStatus.Completed
         );
 
-        // 年度已上线的OKR项目：状态为"已完成"、"本周已上线"上线时间在当前年度且绑定了OKR的项目
+        // 年度已上线的OKR项目：项目优先级为"部门OKR"且项目状态为"已完成"、"本周已上线"且上线时间在本年的日期范围
         const launchedOkrProjects = myProjects.filter(p =>
+            p.priority === '部门OKR' &&
             (p.status === ProjectStatus.Completed || p.status === ProjectStatus.LaunchedThisWeek) && 
             p.launchDate && 
-            new Date(p.launchDate).getFullYear() === currentYear &&
-            (p.keyResultIds || []).length > 0
+            new Date(p.launchDate).getFullYear() === currentYear
         );
 
         const krToOkrMap = new Map<string, string>();

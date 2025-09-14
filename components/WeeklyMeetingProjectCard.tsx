@@ -208,9 +208,48 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
                       <ul className="space-y-1">
                         {(team || []).map(member => {
                           const user = allUsers.find(u => u.id === member.userId);
-                          const scheduleText = (member.startDate && member.endDate)
-                            ? `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`
-                            : '暂无排期';
+                          // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
+                          let scheduleText;
+                          if (member.timeSlots && member.timeSlots.length > 0) {
+                            // 显示第一个 timeSlot 的时间段
+                            const slot = member.timeSlots[0];
+                            if (slot.startDate && slot.endDate) {
+                              const startDateObj = new Date(slot.startDate);
+                              const endDateObj = new Date(slot.endDate);
+                              if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                                const startDate = startDateObj.toLocaleDateString('zh-CN', {
+                                  month: '2-digit',
+                                  day: '2-digit'
+                                }).replace(/\//g, '.');
+                                const endDate = endDateObj.toLocaleDateString('zh-CN', {
+                                  month: '2-digit',
+                                  day: '2-digit'
+                                }).replace(/\//g, '.');
+                                scheduleText = `${startDate} - ${endDate}`;
+                              } else {
+                                scheduleText = '无排期';
+                              }
+                            } else {
+                              scheduleText = '无排期';
+                            }
+                          } else if (member.startDate && member.endDate) {
+                            const startDateObj = new Date(member.startDate);
+                            const endDateObj = new Date(member.endDate);
+                            if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                              scheduleText = `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
+                            } else {
+                              scheduleText = '无排期';
+                            }
+                          } else if (member.startDate) {
+                            const startDateObj = new Date(member.startDate);
+                            if (!isNaN(startDateObj.getTime())) {
+                              scheduleText = `${member.startDate.replace(/-/g, '.')} 开始`;
+                            } else {
+                              scheduleText = '无排期';
+                            }
+                          } else {
+                            scheduleText = '无排期';
+                          }
                           
                           return (
                             <li key={member.userId} className="text-xs">

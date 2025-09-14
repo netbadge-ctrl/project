@@ -170,9 +170,15 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
       followers: [],
       comments: [],
       changeLog: [],
+      createdAt: new Date().toISOString(),
       isNew: true,
     };
-    setProjects(prev => [newProject, ...prev]);
+    
+    // 清除之前的新项目，确保只有一个新项目
+    setProjects(prev => {
+      const existingProjects = prev.filter(p => !p.isNew);
+      return [newProject, ...existingProjects];
+    });
     setEditingId(newProject.id);
     
     // 立即滚动到表格顶部，确保新建项目可见
@@ -181,7 +187,6 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
       if (tableContainer) {
         tableContainer.scrollTo({ top: 0, behavior: 'auto' });
       } else {
-        // 如果找不到表格容器，滚动整个页面到顶部
         window.scrollTo({ top: 0, behavior: 'auto' });
       }
     });
@@ -249,11 +254,45 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
                 const user = (allUsers || []).find(u => u.id === member.userId);
                 const userName = user ? user.name : '未知用户';
                 
-                // 包含排期信息
-                if (member.startDate && member.endDate) {
-                    return `${userName}(${member.startDate}~${member.endDate})`;
+                // 包含排期信息 - 优先显示 timeSlots 中的排期
+                if (member.timeSlots && member.timeSlots.length > 0) {
+                    const slot = member.timeSlots[0];
+                    if (slot.startDate && slot.endDate) {
+                        const startDateObj = new Date(slot.startDate);
+                        const endDateObj = new Date(slot.endDate);
+                        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                            const startDate = startDateObj.toLocaleDateString('zh-CN', {
+                                month: '2-digit',
+                                day: '2-digit'
+                            }).replace(/\//g, '.');
+                            const endDate = endDateObj.toLocaleDateString('zh-CN', {
+                                month: '2-digit',
+                                day: '2-digit'
+                            }).replace(/\//g, '.');
+                            return `${userName}(${startDate}~${endDate})`;
+                        } else {
+                            return `${userName}(无排期)`;
+                        }
+                    } else {
+                        return `${userName}(无排期)`;
+                    }
+                } else if (member.startDate && member.endDate) {
+                    const startDateObj = new Date(member.startDate);
+                    const endDateObj = new Date(member.endDate);
+                    if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                        return `${userName}(${member.startDate}~${member.endDate})`;
+                    } else {
+                        return `${userName}(无排期)`;
+                    }
+                } else if (member.startDate) {
+                    const startDateObj = new Date(member.startDate);
+                    if (!isNaN(startDateObj.getTime())) {
+                        return `${userName}(${member.startDate}开始)`;
+                    } else {
+                        return `${userName}(无排期)`;
+                    }
                 } else {
-                    return `${userName}(未排期)`;
+                    return `${userName}(无排期)`;
                 }
             });
             
@@ -288,7 +327,9 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     
     // Asynchronously call the API without blocking UI.
     try {
+        console.log('Updating project:', projectId, 'field:', field, 'value:', value);
         await api.updateProject(projectId, updates);
+        console.log('Project update successful');
         // On success, state is already updated. No full refresh needed.
     } catch (error) {
         console.error("Failed to update project", error);
@@ -303,15 +344,23 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
 
     setIsLoading(true);
     try {
+        // 获取当前本地状态中的项目数据，确保包含所有用户修改
+        const currentProjectState = projects.find(p => p.id === projectToSave.id);
+        const finalProjectData = currentProjectState || projectToSave;
+
         const creationLogEntry: ChangeLogEntry = {
             id: `cl_${Date.now()}`,
             userId: currentUser!.id,
             field: '项目创建',
             oldValue: '',
-            newValue: projectToSave.name,
+            newValue: finalProjectData.name,
             changedAt: new Date().toISOString(),
         };
-        const projectWithLog = { ...projectToSave, changeLog: [creationLogEntry, ...(projectToSave.changeLog || [])] };
+        const projectWithLog = { 
+            ...finalProjectData, 
+            changeLog: [creationLogEntry, ...(finalProjectData.changeLog || [])],
+            isNew: undefined // 移除 isNew 标记
+        };
 
         await api.createProject(projectWithLog);
         await fetchData();
@@ -324,7 +373,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     } finally {
         setIsLoading(false);
     }
-  }, [fetchData, currentUser]);
+  }, [fetchData, currentUser, projects]);
   
   const handleCancelNewProject = useCallback((projectId: string) => {
     setProjects(prev => prev.filter(p => p.id !== projectId));
@@ -358,8 +407,20 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
   
   const handleSaveRole = useCallback(async (projectId: string, roleKey: ProjectRoleKey, newRole: Role) => {
      handleCloseModal();
+     
+     // 检查是否为新项目
+     const projectToUpdate = (projects || []).find(p => p.id === projectId);
+     if (projectToUpdate?.isNew) {
+       // 对于新项目，只更新本地状态，不调用 API
+       setProjects(prev => prev.map(p => 
+         p.id === projectId ? { ...p, [roleKey]: newRole } : p
+       ));
+       return;
+     }
+     
+     // 对于现有项目，正常调用 handleUpdateProject
      await handleUpdateProject(projectId, roleKey, newRole);
-  }, [handleUpdateProject, handleCloseModal]);
+  }, [handleUpdateProject, handleCloseModal, projects]);
 
   const handleUpdateCurrentOkrSet = async (updatedOkrs: OKR[]) => {
     if (!currentOkrPeriodId) return;

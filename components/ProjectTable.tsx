@@ -97,7 +97,7 @@ const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
     [ProjectStatus.ProjectInProgress]: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-600/50 dark:text-amber-300 dark:border-amber-500/60',
   };
   return (
-    <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${statusStyles[status]}`}>
+    <span className={`px-2.5 py-1 text-xs font-medium rounded-full border whitespace-nowrap ${statusStyles[status]}`}>
       {status}
     </span>
   );
@@ -538,32 +538,45 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
         if (prev.id !== project.id) {
           return project;
         }
-        // 否则保留本地状态，只更新必要的字段（如团队成员数据）
-        return {
-          ...prev,
-          // 只更新可能从外部变化的字段，保护用户输入的字段
-          productManagers: project.productManagers || prev.productManagers,
-          backendDevelopers: project.backendDevelopers || prev.backendDevelopers,
-          frontendDevelopers: project.frontendDevelopers || prev.frontendDevelopers,
-          qaTesters: project.qaTesters || prev.qaTesters,
-        };
+        // 否则保留本地状态，但要同步团队成员数据的变化
+        // 检查团队成员数据是否有变化，如果有变化则更新
+        const hasRoleChanges = 
+          JSON.stringify(prev.productManagers) !== JSON.stringify(project.productManagers) ||
+          JSON.stringify(prev.backendDevelopers) !== JSON.stringify(project.backendDevelopers) ||
+          JSON.stringify(prev.frontendDevelopers) !== JSON.stringify(project.frontendDevelopers) ||
+          JSON.stringify(prev.qaTesters) !== JSON.stringify(project.qaTesters);
+        
+        if (hasRoleChanges) {
+          return {
+            ...prev,
+            productManagers: project.productManagers,
+            backendDevelopers: project.backendDevelopers,
+            frontendDevelopers: project.frontendDevelopers,
+            qaTesters: project.qaTesters,
+          };
+        }
+        
+        return prev;
       });
     } else {
       // 对于现有项目，直接使用新的项目数据
       setLocalProject(project);
     }
-  }, [project.id, project.isNew]); // 只依赖关键字段，避免不必要的重渲染
+  }, [project.id, project.isNew, project.productManagers, project.backendDevelopers, project.frontendDevelopers, project.qaTesters]); // 添加团队成员字段到依赖
 
   // 使用 useCallback 优化回调函数
   const handleUpdateField = useCallback((field: keyof Project, value: any) => {
     if (project.isNew) {
-      // 新建项目：只更新本地状态，不触发保存
-      setLocalProject(prev => ({ ...prev, [field]: value }));
+      // 新建项目：更新本地状态，同时同步到全局状态
+      const updatedProject = { ...localProject, [field]: value };
+      setLocalProject(updatedProject);
+      // 同步到全局状态，确保保存时能获取到最新数据
+      onUpdateProject(project.id, field, value);
     } else {
       // 现有项目：立即保存
       onUpdateProject(project.id, field, value);
     }
-  }, [project.isNew, project.id, onUpdateProject]);
+  }, [project.isNew, project.id, localProject, onUpdateProject]);
 
   const handleSaveNewProject = useCallback(async () => {
     if (isSaving) return; // 防止重复点击
@@ -869,8 +882,11 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
           classes += ' border-l-2 border-gray-300 dark:border-[#4a4a4a]';
       }
       // 为状态列(index=2)和优先级列(index=3)添加防止折行的样式
-      if (index === 2 || index === 3) {
-          classes += ' whitespace-nowrap';
+      if (index === 2) {
+          classes += ' whitespace-nowrap status-cell';
+      }
+      if (index === 3) {
+          classes += ' whitespace-nowrap priority-cell';
       }
       return classes;
   };
@@ -1009,9 +1025,9 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
             )}
             
             {/* 渲染可见的项目行 */}
-            {visibleProjects.map(project => (
+            {visibleProjects.map((project, index) => (
               <ProjectRow
-                key={project.id}
+                key={`${project.id}-${index}`}
                 project={project}
                 allUsers={allUsers}
                 activeOkrs={activeOkrs}

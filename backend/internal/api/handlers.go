@@ -415,7 +415,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		SELECT id, name, priority, business_problem, key_result_ids, weekly_update, 
 		       last_week_update, status, product_managers, backend_developers, 
 		       frontend_developers, qa_testers, proposal_date, launch_date, 
-		       followers, comments, change_log
+		       created_at, followers, comments, change_log
 		FROM projects WHERE id = $1
 	`
 
@@ -428,7 +428,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		&existing.ID, &existing.Name, &existing.Priority, &existing.BusinessProblem, &keyResultIds,
 		&existing.WeeklyUpdate, &existing.LastWeekUpdate, &existing.Status, &productManagers,
 		&backendDevelopers, &frontendDevelopers, &qaTesters,
-		&existing.ProposalDate, &existing.LaunchDate, &followers, &comments, &changeLog,
+		&existing.ProposalDate, &existing.LaunchDate, &existing.CreatedAt, &followers, &comments, &changeLog,
 	)
 
 	if err != nil {
@@ -499,6 +499,9 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 	if updates.ChangeLog != nil {
 		existing.ChangeLog = updates.ChangeLog
 	}
+	if updates.CreatedAt != "" {
+		existing.CreatedAt = updates.CreatedAt
+	}
 
 	// 开始事务
 	tx, err := h.db.Begin()
@@ -524,7 +527,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 			product_managers = $9, backend_developers = $10, 
 			frontend_developers = $11, qa_testers = $12, 
 			proposal_date = $13, launch_date = $14, followers = $15, 
-			comments = $16, change_log = $17
+			comments = $16, change_log = $17, created_at = $18
 		WHERE id = $1
 	`
 
@@ -533,7 +536,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		pq.Array(existing.KeyResultIds), existing.WeeklyUpdate, existing.LastWeekUpdate,
 		existing.Status, productManagersJSON, backendDevelopersJSON,
 		frontendDevelopersJSON, qaTestersJSON, existing.ProposalDate, existing.LaunchDate,
-		pq.Array(existing.Followers), commentsJSON, changeLogJSON)
+		pq.Array(existing.Followers), commentsJSON, changeLogJSON, existing.CreatedAt)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

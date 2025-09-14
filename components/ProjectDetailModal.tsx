@@ -181,9 +181,48 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                                                         <ul className="space-y-1">
                                                             {team.map(member => {
                                                                 const user = allUsers.find(u => u.id === member.userId);
-                                                                const scheduleText = (member.startDate && member.endDate)
-                                                                    ? `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`
-                                                                    : <span className="text-gray-500 dark:text-gray-400">暂无排期</span>;
+                                                                // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
+                                                                let scheduleText;
+                                                                if (member.timeSlots && member.timeSlots.length > 0) {
+                                                                    // 显示第一个 timeSlot 的时间段
+                                                                    const slot = member.timeSlots[0];
+                                                                    if (slot.startDate && slot.endDate) {
+                                                                        const startDateObj = new Date(slot.startDate);
+                                                                        const endDateObj = new Date(slot.endDate);
+                                                                        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                                                                            const startDate = startDateObj.toLocaleDateString('zh-CN', {
+                                                                                month: '2-digit',
+                                                                                day: '2-digit'
+                                                                            }).replace(/\//g, '.');
+                                                                            const endDate = endDateObj.toLocaleDateString('zh-CN', {
+                                                                                month: '2-digit',
+                                                                                day: '2-digit'
+                                                                            }).replace(/\//g, '.');
+                                                                            scheduleText = `${startDate} - ${endDate}`;
+                                                                        } else {
+                                                                            scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                        }
+                                                                    } else {
+                                                                        scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                    }
+                                                                } else if (member.startDate && member.endDate) {
+                                                                    const startDateObj = new Date(member.startDate);
+                                                                    const endDateObj = new Date(member.endDate);
+                                                                    if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                                                                        scheduleText = `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
+                                                                    } else {
+                                                                        scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                    }
+                                                                } else if (member.startDate) {
+                                                                    const startDateObj = new Date(member.startDate);
+                                                                    if (!isNaN(startDateObj.getTime())) {
+                                                                        scheduleText = `${member.startDate.replace(/-/g, '.')} 开始`;
+                                                                    } else {
+                                                                        scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                    }
+                                                                } else {
+                                                                    scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                }
                                                                 
                                                                 return (
                                                                     <li key={member.userId} className="grid grid-cols-[1fr_auto] items-baseline gap-x-3">

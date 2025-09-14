@@ -4,18 +4,22 @@ import { RichTextInput } from './RichTextInput';
 export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (value: string) => void }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentHtml, setCurrentHtml] = useState(html);
+    const [originalHtml, setOriginalHtml] = useState(html); // 记录开始编辑时的原始内容
     const [isExpanded, setIsExpanded] = useState(false);
     const [needsTruncation, setNeedsTruncation] = useState(false);
+    const [hasUserEdited, setHasUserEdited] = useState(false); // 跟踪用户是否真正编辑过
     const textRef = useRef<HTMLDivElement>(null);
 
     const maxLines = 5;
 
     useEffect(() => {
         // 确保currentHtml始终与传入的html保持同步
-        if (html !== currentHtml) {
+        if (html !== currentHtml && !isEditing) {
             setCurrentHtml(html);
+            setOriginalHtml(html);
+            setHasUserEdited(false);
         }
-    }, [html, currentHtml]);
+    }, [html, currentHtml, isEditing]);
 
     useEffect(() => {
         const checkTruncation = () => {
@@ -54,11 +58,56 @@ export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (
         return () => clearTimeout(timer);
     }, [html, maxLines]);
 
+    // 简化的内容比较，只去除首尾空白
+    const normalizeHtml = (htmlContent: string) => {
+        if (!htmlContent) return '';
+        return htmlContent.trim();
+    };
+
     const handleSave = () => {
-        if (currentHtml !== html) {
-            onSave(currentHtml);
+        // 只有用户真正编辑过内容才进行保存检查
+        if (!hasUserEdited) {
+            console.log('🔧 User has not edited content, skipping save');
+            setIsEditing(false);
+            return;
         }
+
+        const normalizedCurrent = normalizeHtml(currentHtml);
+        const normalizedOriginal = normalizeHtml(originalHtml);
+        const hasChanged = normalizedCurrent !== normalizedOriginal;
+        
+        console.log('🔧 RichTextEditableCell handleSave called', { 
+            currentHtml: currentHtml.substring(0, 50) + '...', 
+            originalHtml: originalHtml.substring(0, 50) + '...', 
+            normalizedCurrent: normalizedCurrent.substring(0, 50) + '...',
+            normalizedOriginal: normalizedOriginal.substring(0, 50) + '...',
+            changed: hasChanged,
+            hasUserEdited,
+            currentLength: currentHtml.length,
+            originalLength: originalHtml.length
+        });
+        
+        if (hasChanged) {
+            console.log('🔧 Calling onSave with new content');
+            onSave(currentHtml);
+        } else {
+            console.log('🔧 No changes detected, skipping save');
+        }
+        
         setIsEditing(false);
+        setHasUserEdited(false);
+    };
+
+    // 延迟失焦保存，避免过于敏感
+    const handleBlurWithDelay = () => {
+        // 延迟150ms，给用户足够时间在编辑器内移动焦点
+        setTimeout(() => {
+            // 检查当前是否还在编辑状态，如果不是则不保存
+            if (document.activeElement?.closest('.rich-text-input')) {
+                return; // 焦点还在富文本编辑器内，不保存
+            }
+            handleSave();
+        }, 150);
     };
 
     const handleEditClick = (e: React.MouseEvent) => {
@@ -67,16 +116,19 @@ export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (
             return;
         }
         
-        // 进入编辑模式前，确保currentHtml是最新的
-        if (currentHtml !== html) {
-            setCurrentHtml(html);
-        }
-        
+        // 进入编辑模式时，记录原始内容并重置编辑状态
+        setCurrentHtml(html);
+        setOriginalHtml(html);
+        setHasUserEdited(false);
         setIsEditing(true);
     };
 
     const handleChange = (newHtml: string) => {
         setCurrentHtml(newHtml);
+        // 标记用户已经编辑过内容
+        if (!hasUserEdited) {
+            setHasUserEdited(true);
+        }
     };
 
     // 计算内容的行数来设置合适的初始高度
@@ -112,13 +164,14 @@ export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (
         const maxRows = 15;
 
         return (
-            <div onBlur={handleSave} className="w-full">
+            <div className="w-full min-h-[300px]">
                 <RichTextInput
                     html={currentHtml}
                     onChange={handleChange}
+                    onBlur={handleBlurWithDelay}
                     className="focus:bg-gray-100 dark:focus:bg-[#333] rich-text-editor dynamic-height"
-                    minRows={minRows}
-                    maxRows={maxRows}
+                    minRows={8} // 固定较大的最小行数，确保编辑框足够大
+                    maxRows={25} // 增加最大行数
                 />
             </div>
         );

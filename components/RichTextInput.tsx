@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 interface RichTextInputProps {
     html: string;
     onChange: (newHtml: string) => void;
+    onBlur?: () => void;
     placeholder?: string;
     className?: string;
     minRows?: number;
@@ -12,6 +13,7 @@ interface RichTextInputProps {
 export const RichTextInput: React.FC<RichTextInputProps> = ({ 
     html, 
     onChange, 
+    onBlur,
     placeholder, 
     className = '', 
     minRows = 3,
@@ -27,15 +29,13 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
         if (!contentRef.current) return;
 
         const element = contentRef.current;
-        const lineHeight = 21; // 固定行高
+        const lineHeight = 21;
         const minHeight = lineHeight * minRows;
         const maxHeight = lineHeight * maxRows;
 
-        // 重置高度以获取真实的scrollHeight
         element.style.height = 'auto';
         const scrollHeight = element.scrollHeight;
         
-        // 设置最终高度
         const finalHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
         element.style.height = `${finalHeight}px`;
         element.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
@@ -66,7 +66,7 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
         }
     }, []);
 
-    // 直接处理输入，移除防抖以提高响应速度
+    // 直接处理输入
     const handleInput = useCallback(() => {
         if (!contentRef.current) return;
         
@@ -79,7 +79,6 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
     // 处理按键
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            // 允许换行
             setTimeout(() => adjustHeight(), 0);
         }
     }, [adjustHeight]);
@@ -99,15 +98,12 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
             const isCurrentlyRed = currentColor === 'rgb(239, 68, 68)' || currentColor === '#ef4444' || currentColor === 'red';
             
             if (isCurrentlyRed) {
-                // 取消标红
                 document.execCommand('foreColor', false, '#000000');
             } else {
-                // 标红
                 document.execCommand('foreColor', false, '#ef4444');
             }
         }
         
-        // 更新按钮状态
         setTimeout(() => {
             updateButtonStates();
             handleInput();
@@ -118,6 +114,29 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
     const handleFocus = useCallback(() => {
         updateButtonStates();
     }, [updateButtonStates]);
+
+    // 处理失焦 - 添加延迟避免过于敏感
+    const handleBlur = useCallback((e: React.FocusEvent) => {
+        const currentTarget = e.currentTarget;
+        const relatedTarget = e.relatedTarget as HTMLElement;
+        
+        // 如果焦点移动到工具栏按钮，不触发失焦
+        if (relatedTarget && (
+            currentTarget.contains(relatedTarget) || 
+            relatedTarget.closest('.rich-text-input')
+        )) {
+            return;
+        }
+        
+        // 延迟触发失焦事件，给用户时间在编辑器内移动
+        setTimeout(() => {
+            // 再次检查焦点是否还在编辑器内
+            if (document.activeElement?.closest('.rich-text-input')) {
+                return;
+            }
+            onBlur?.();
+        }, 200);
+    }, [onBlur]);
 
     // 处理选择变化
     useEffect(() => {
@@ -133,7 +152,6 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
 
     return (
         <div className="rich-text-input">
-            {/* 工具栏 */}
             <div className="flex gap-2 mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border">
                 <button
                     type="button"
@@ -159,13 +177,13 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                 </button>
             </div>
 
-            {/* 编辑区域 */}
             <div
                 ref={contentRef}
                 contentEditable
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
                 onFocus={handleFocus}
+                onBlur={handleBlur}
                 className={`
                     w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500

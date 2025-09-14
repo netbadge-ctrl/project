@@ -16,9 +16,48 @@ const RoleSection: React.FC<{ role: Role; roleName: string; allUsers: User[] }> 
         {(role || []).map(member => {
           const user = allUsers.find(u => u.id === member.userId);
           if (!user) return null;
-          const schedule = (member.startDate && member.endDate)
-            ? `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`
-            : '未排期';
+          // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
+          let schedule;
+          if (member.timeSlots && member.timeSlots.length > 0) {
+            // 显示第一个 timeSlot 的时间段
+            const slot = member.timeSlots[0];
+            if (slot.startDate && slot.endDate) {
+              const startDateObj = new Date(slot.startDate);
+              const endDateObj = new Date(slot.endDate);
+              if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+                const startDate = startDateObj.toLocaleDateString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit'
+                }).replace(/\//g, '.');
+                const endDate = endDateObj.toLocaleDateString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit'
+                }).replace(/\//g, '.');
+                schedule = `${startDate} - ${endDate}`;
+              } else {
+                schedule = '无排期';
+              }
+            } else {
+              schedule = '无排期';
+            }
+          } else if (member.startDate && member.endDate) {
+            const startDateObj = new Date(member.startDate);
+            const endDateObj = new Date(member.endDate);
+            if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+              schedule = `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
+            } else {
+              schedule = '无排期';
+            }
+          } else if (member.startDate) {
+            const startDateObj = new Date(member.startDate);
+            if (!isNaN(startDateObj.getTime())) {
+              schedule = `${member.startDate.replace(/-/g, '.')} 开始`;
+            } else {
+              schedule = '无排期';
+            }
+          } else {
+            schedule = '无排期';
+          }
           return (
             <li key={user.id} className="flex justify-between items-center gap-3">
               <span className="text-gray-200">{user.name}</span>

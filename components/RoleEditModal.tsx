@@ -84,19 +84,13 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
       const isFirstMember = currentTeam.length === 0;
       const newMember: TeamMemberWithState = {
         userId,
-        startDate: (() => {
-          const today = new Date();
-          return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        })(),
+        startDate: '',
         endDate: '',
         useSharedSchedule: !isFirstMember,
         useMultiTimeSlots: false,
         timeSlots: [{
           id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          startDate: (() => {
-            const today = new Date();
-            return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-          })(),
+          startDate: '',
           endDate: '',
           description: ''
         }],
@@ -116,11 +110,50 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
   };
   
   const handleIndividualDateChange = (tempId: string, startDate: string, endDate: string) => {
-    setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? {...m, startDate, endDate } : m));
+    setCurrentTeam(prev => prev.map(m => {
+      if (m._tempId === tempId) {
+        return { ...m, startDate, endDate };
+      }
+      // 如果修改的是第一个成员，且其他成员启用了共享排期，则同步更新
+      if (tempId === firstMember?._tempId && m.useSharedSchedule) {
+        return { ...m, startDate, endDate };
+      }
+      return m;
+    }));
   };
   
   const handleToggleSharedSchedule = (tempId: string) => {
-    setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? { ...m, useSharedSchedule: !m.useSharedSchedule } : m));
+    setCurrentTeam(prev => prev.map(m => {
+      if (m._tempId === tempId) {
+        const newUseSharedSchedule = !m.useSharedSchedule;
+        
+        // 如果启用共享排期，复制第一个成员的排期信息
+        if (newUseSharedSchedule && firstMember) {
+          return {
+            ...m,
+            useSharedSchedule: newUseSharedSchedule,
+            startDate: firstMember.startDate,
+            endDate: firstMember.endDate,
+            timeSlots: firstMember.timeSlots ? [...firstMember.timeSlots] : []
+          };
+        } else {
+          // 如果取消共享排期，清空排期信息
+          return {
+            ...m,
+            useSharedSchedule: newUseSharedSchedule,
+            startDate: '',
+            endDate: '',
+            timeSlots: [{
+              id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              startDate: '',
+              endDate: '',
+              description: ''
+            }]
+          };
+        }
+      }
+      return m;
+    }));
   };
 
   const handleToggleMultiTimeSlots = (tempId: string) => {
@@ -128,11 +161,33 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
   };
 
   const handleUpdateTimeSlots = (tempId: string, timeSlots: TimeSlot[]) => {
-    setCurrentTeam(prev => prev.map(m => m._tempId === tempId ? { ...m, timeSlots } : m));
+    setCurrentTeam(prev => prev.map(m => {
+      if (m._tempId === tempId) {
+        return { ...m, timeSlots };
+      }
+      // 如果修改的是第一个成员，且其他成员启用了共享排期，则同步更新
+      if (tempId === firstMember?._tempId && m.useSharedSchedule) {
+        return { ...m, timeSlots: [...timeSlots] };
+      }
+      return m;
+    }));
   };
   
   const handleSave = () => {
-    const finalTeam = currentTeam.map((member) => {
+    // 在保存前，确保所有启用共享排期的成员都有最新的排期数据
+    const updatedTeam = currentTeam.map((member) => {
+      if (member.useSharedSchedule && firstMember && member._tempId !== firstMember._tempId) {
+        return {
+          ...member,
+          startDate: firstMember.startDate,
+          endDate: firstMember.endDate,
+          timeSlots: firstMember.timeSlots ? [...firstMember.timeSlots] : []
+        };
+      }
+      return member;
+    });
+
+    const finalTeam = updatedTeam.map((member) => {
         const { _tempId, useMultiTimeSlots, useSharedSchedule, ...memberData } = member;
         
         // 确保 timeSlots 数据被保留
