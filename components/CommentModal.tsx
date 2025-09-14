@@ -115,6 +115,14 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
           ) : (
             (project.comments || []).map(comment => {
               const user = getUser(comment.userId);
+              const handleReplyToComment = () => {
+                if (user && user.id !== currentUser.id) {
+                  setNewComment(`@${user.name} `);
+                  setMentionedUserIds(ids => [...new Set([...ids, user.id])]);
+                  textareaRef.current?.focus();
+                }
+              };
+              
               return (
                 <div key={comment.id} className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mt-1">
@@ -126,6 +134,16 @@ export const CommentModal: React.FC<CommentModalProps> = ({ project, allUsers, c
                        <span className="text-xs text-gray-500 dark:text-gray-500">{formatDateTime(comment.createdAt)}</span>
                     </div>
                     <div className="mt-1 bg-gray-100 dark:bg-[#2d2d2d] rounded-lg p-3 text-sm" dangerouslySetInnerHTML={{ __html: renderCommentTextAsHtml(comment, allUsers) }}></div>
+                    <div className="mt-2 flex justify-end">
+                      {user && user.id !== currentUser.id && (
+                        <button 
+                          onClick={handleReplyToComment}
+                          className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          回复
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
