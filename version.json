@@ -1,16 +1,17 @@
 {
-  "version": "2.6.6",
-  "name": "Database Configuration & Component Updates Release",
+  "version": "2.6.7",
+  "name": "Schedule Display & Database Cleanup Release",
   "releaseDate": "2025-09-15",
-  "buildTime": "2025-09-15T10:00:00+08:00",
+  "buildTime": "2025-09-15T11:30:00+08:00",
   "features": [
+    "项目总览表格成员排期直接显示（仅日期格式）",
+    "数据库1月1日默认排期数据清理",
+    "线上部署白屏问题修复",
+    "构建配置优化和CSS文件修复",
     "数据库配置优化支持PostgreSQL和SQLite",
     "组件功能增强和性能优化",
     "年度统计组件改进",
-    "个人视图功能完善",
-    "项目详情模态框优化",
-    "富文本输入组件升级",
-    "构建配置和依赖更新"
+    "个人视图功能完善"
   ],
   "compatibility": {
     "backward": "v2.0.7",
@@ -19,14 +20,14 @@
   },
   "changelog": {
     "added": [
+      "项目总览表格成员排期直接显示功能",
+      "成员排期仅显示日期格式（MM.DD-MM.DD）",
+      "数据库1月1日默认排期清理脚本",
+      "index.css文件修复构建警告",
       "项目总览表格固定表头功能",
       "左侧三列（项目名称、业务问题、状态）固定",
       "右侧操作列固定",
-      "富文本显示样式支持",
-      "周会视图气泡弹窗悬停延迟机制",
-      "空值安全检查机制",
-      "搜索框防抖机制",
-      "输入框性能优化机制"
+      "富文本显示样式支持"
     ],
     "updated": [
       "RichTextEditableCell 组件支持HTML格式显示",
@@ -39,19 +40,16 @@
       "RichTextInput 组件输入响应优化"
     ],
     "fixed": [
+      "线上部署白屏问题（404错误）",
+      "构建时缺失index.css文件警告",
+      "数据库中1775个项目的1月1日默认排期数据",
+      "成员排期显示需要悬停查看的用户体验问题",
       "项目总览表格表头不固定问题",
       "富文本内容HTML标签被移除问题",
       "变更记录只显示成员姓名不显示排期问题",
       "周会视图气泡弹窗过于敏感问题",
-      "新建项目名称默认值用户体验问题",
       "表格滚动布局问题",
-      "PersonalView组件null引用导致的forEach错误",
-      "AnnualStats组件null引用导致的filter错误", 
-      "ProjectOverview组件null引用导致的filter错误",
-      "App.tsx中changeLog不可迭代的运行时错误",
-      "RichTextInput.tsx中JSX布尔属性错误",
-      "搜索框输入卡顿性能问题",
-      "新建项目输入框响应延迟问题"
+      "PersonalView组件null引用导致的forEach错误"
     ]
   },
   "metrics": {
