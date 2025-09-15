@@ -1,16 +1,16 @@
 {
-  "version": "2.1.1",
-  "name": "Critical Bug Fix & Performance Optimization Release",
-  "releaseDate": "2025-01-05",
-  "buildTime": "2025-01-05T20:00:00+08:00",
+  "version": "2.6.6",
+  "name": "Database Configuration & Component Updates Release",
+  "releaseDate": "2025-09-15",
+  "buildTime": "2025-09-15T10:00:00+08:00",
   "features": [
-    "项目总览表格固定表头和列",
-    "富文本格式正确显示",
-    "变更记录完整信息展示",
-    "周会视图气泡弹窗优化",
-    "新建项目用户体验改进",
-    "修复关键JavaScript运行时错误",
-    "搜索框和输入框性能优化"
+    "数据库配置优化支持PostgreSQL和SQLite",
+    "组件功能增强和性能优化",
+    "年度统计组件改进",
+    "个人视图功能完善",
+    "项目详情模态框优化",
+    "富文本输入组件升级",
+    "构建配置和依赖更新"
   ],
   "compatibility": {
     "backward": "v2.0.7",
