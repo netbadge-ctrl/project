@@ -91,8 +91,19 @@ export VITE_ENABLE_OIDC=true
 export VITE_MOCK_USER_ID=
 source /root/.bash_profile
 
-# 启动前端服务（使用开发模式以保持兼容性）
-nohup npm run dev > frontend.log 2>&1 &
+# 构建生产版本
+echo "构建生产版本..."
+npm run build
+
+# 检查构建是否成功
+if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
+    echo "前端构建失败！"
+    exit 1
+fi
+
+echo "前端构建成功，启动静态文件服务..."
+# 启动前端服务（使用预览模式提供静态文件）
+nohup npm run preview > frontend.log 2>&1 &
 echo $! > frontend.pid
 
 echo "部署完成！"
