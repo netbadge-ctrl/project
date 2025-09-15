@@ -98,7 +98,13 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
             const isCurrentlyRed = currentColor === 'rgb(239, 68, 68)' || currentColor === '#ef4444' || currentColor === 'red';
             
             if (isCurrentlyRed) {
-                document.execCommand('foreColor', false, '#000000');
+                // 检测当前是否为深色模式
+                const isDarkMode = document.documentElement.classList.contains('dark') || 
+                                 window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                // 根据主题模式设置合适的默认颜色
+                const defaultColor = isDarkMode ? '#f3f4f6' : '#111827'; // 深色模式用浅灰色，浅色模式用深灰色
+                document.execCommand('foreColor', false, defaultColor);
             } else {
                 document.execCommand('foreColor', false, '#ef4444');
             }

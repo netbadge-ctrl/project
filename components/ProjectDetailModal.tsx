@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Project, User, OKR, ProjectRoleKey, Priority, ProjectStatus, Role } from '../types';
-import { IconX, IconStar, IconPencil } from './Icons';
+import { IconX, IconStar, IconPencil, IconChevronDown } from './Icons';
 import { RichTextInput } from './RichTextInput';
 
 const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
@@ -28,7 +28,7 @@ const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
         [ProjectStatus.DevDone]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/50 dark:text-yellow-300 dark:border-yellow-500/60',
         [ProjectStatus.Testing]: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-600/50 dark:text-pink-300 dark:border-pink-500/60',
         [ProjectStatus.TestDone]: 'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-600/50 dark:text-teal-300 dark:border-teal-500/60',
-        [ProjectStatus.ThisWeekOnline]: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-600/50 dark:text-emerald-300 dark:border-emerald-500/60',
+        [ProjectStatus.LaunchedThisWeek]: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-600/50 dark:text-emerald-300 dark:border-emerald-500/60',
         [ProjectStatus.Completed]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
         [ProjectStatus.Paused]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/50 dark:text-red-300 dark:border-red-500/60',
         [ProjectStatus.ProjectInProgress]: 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-600/50 dark:text-violet-300 dark:border-violet-500/60',
@@ -38,6 +38,66 @@ const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
       {status}
     </span>
   );
+};
+
+const EditableStatusSelect: React.FC<{ 
+    status: ProjectStatus; 
+    onStatusChange: (status: ProjectStatus) => void;
+}> = ({ status, onStatusChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    const statusOptions = [
+        ProjectStatus.NotStarted,
+        ProjectStatus.Discussion,
+        ProjectStatus.ProductDesign,
+        ProjectStatus.RequirementsDone,
+        ProjectStatus.ReviewDone,
+        ProjectStatus.InProgress,
+        ProjectStatus.ProjectInProgress,
+        ProjectStatus.DevDone,
+        ProjectStatus.Testing,
+        ProjectStatus.TestDone,
+        ProjectStatus.LaunchedThisWeek,
+        ProjectStatus.Completed,
+        ProjectStatus.Paused,
+    ];
+
+    const handleStatusSelect = (newStatus: ProjectStatus) => {
+        onStatusChange(newStatus);
+        setIsOpen(false);
+    };
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#2d2d2d] rounded-lg p-1 transition-colors group"
+            >
+                <StatusBadge status={status} />
+                <IconChevronDown className="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+            </button>
+            
+            {isOpen && (
+                <>
+                    <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#4a4a4a] rounded-lg shadow-lg z-20 min-w-[160px] max-h-60 overflow-y-auto">
+                        {statusOptions.map((statusOption) => (
+                            <button
+                                key={statusOption}
+                                onClick={() => handleStatusSelect(statusOption)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3a] transition-colors flex items-center"
+                            >
+                                <StatusBadge status={statusOption} />
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
 };
 
 const InfoBlock: React.FC<{ label: string, children: React.ReactNode }> = ({ label, children }) => (
@@ -68,6 +128,10 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         if (weeklyUpdateHtml !== project.weeklyUpdate) {
             onUpdateProject(project.id, 'weeklyUpdate', weeklyUpdateHtml);
         }
+    };
+
+    const handleStatusChange = (newStatus: ProjectStatus) => {
+        onUpdateProject(project.id, 'status', newStatus);
     };
 
     const roleInfo: { key: ProjectRoleKey, name: string }[] = [
@@ -116,7 +180,12 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                         </InfoBlock>
                         <div className="grid grid-cols-2 gap-4">
                             <InfoBlock label="优先级"><PriorityBadge priority={project.priority} /></InfoBlock>
-                            <InfoBlock label="状态"><StatusBadge status={project.status} /></InfoBlock>
+                            <InfoBlock label="状态">
+                                <EditableStatusSelect 
+                                    status={project.status} 
+                                    onStatusChange={handleStatusChange}
+                                />
+                            </InfoBlock>
                         </div>
                         <InfoBlock label="关联的 OKR">
                             {projectOkrs.length > 0 ? (

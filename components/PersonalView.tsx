@@ -58,11 +58,9 @@ export const PersonalView: React.FC<PersonalViewProps> = ({ projects, allUsers, 
         (p.qaTesters || []).some(m => m?.userId === currentUser.id)
       );
 
-      // "Ongoing" projects are those that are not 'Completed', 'LaunchedThisWeek', 'Not Started', and 'Paused'.
-      const isOngoing = p.status !== ProjectStatus.Completed && 
-                       p.status !== ProjectStatus.LaunchedThisWeek && 
-                       p.status !== ProjectStatus.NotStarted && 
-                       p.status !== ProjectStatus.Paused;
+      // 显示我参与的除了"暂停"和"已完成"状态之外的所有项目
+      const isOngoing = p.status !== ProjectStatus.Paused && 
+                       p.status !== ProjectStatus.Completed;
 
       if (isParticipant && isOngoing) {
         myActive.push(p);
@@ -71,6 +69,41 @@ export const PersonalView: React.FC<PersonalViewProps> = ({ projects, allUsers, 
       if (p.followers && p.followers.includes(currentUser.id)) {
         followed.push(p);
       }
+    });
+
+    // 按优先级和项目状态排序
+    const priorityOrder = {
+      '部门OKR': 1,
+      '个人OKR': 2,
+      '临时重要需求': 3,
+      '不重要的需求': 4
+    };
+
+    const statusOrder = {
+      [ProjectStatus.InProgress]: 1,
+      [ProjectStatus.Testing]: 2,
+      [ProjectStatus.UnderReview]: 3,
+      [ProjectStatus.RequirementsComplete]: 4,
+      [ProjectStatus.ProductDesign]: 5,
+      [ProjectStatus.UnderDiscussion]: 6,
+      [ProjectStatus.LaunchedThisWeek]: 7,
+      [ProjectStatus.NotStarted]: 8
+    };
+
+    myActive.sort((a, b) => {
+      // 首先按优先级排序
+      const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] || 999;
+      const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] || 999;
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // 然后按项目状态排序
+      const statusA = statusOrder[a.status as keyof typeof statusOrder] || 999;
+      const statusB = statusOrder[b.status as keyof typeof statusOrder] || 999;
+      
+      return statusA - statusB;
     });
 
     const relevantProjectIds = new Set([

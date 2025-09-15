@@ -42,11 +42,9 @@ export const AnnualStats: React.FC<AnnualStatsProps> = ({ projects, activeOkrs, 
             p.launchDate && new Date(p.launchDate).getFullYear() === currentYear
         );
 
-        // 我参与的正在进行的项目：排除"已完成"、"本周已上线"、"未开始"、"暂停"状态的项目
+        // 我参与的正在进行的项目：只排除"暂停"和"已完成"状态的项目
         const ongoingOkrProjects = myProjects.filter(p => 
-            p.status !== ProjectStatus.NotStarted && 
             p.status !== ProjectStatus.Paused && 
-            p.status !== ProjectStatus.LaunchedThisWeek &&
             p.status !== ProjectStatus.Completed
         );
 
