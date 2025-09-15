@@ -1,7 +1,7 @@
 {
   "name": "项目管理工具",
   "private": true,
-  "version": "2.6.8",
+  "version": "2.6.9",
   "type": "module",
   "scripts": {
     "dev": "vite",
