@@ -5,16 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 5173"
+    "build": "vite build --config vite.config.production.ts",
+    "build:dev": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 5173",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
-    "react-dom": "^19.1.1",
+    "pinyin-pro": "3.19.6",
     "react": "^19.1.1",
-    "pinyin-pro": "3.19.6"
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "terser": "^5.44.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
