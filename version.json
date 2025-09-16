@@ -1,17 +1,17 @@
 {
-  "version": "2.7.0",
-  "name": "Deployment Script Fix Release",
+  "version": "2.7.1",
+  "name": "Production Environment Fix Release",
   "releaseDate": "2025-09-16",
-  "buildTime": "2025-09-16T09:00:00+08:00",
+  "buildTime": "2025-09-16T20:00:00+08:00",
   "features": [
+    "修复生产环境新用户白屏404错误",
+    "创建生产专用构建配置和HTML模板",
+    "解决TypeScript源文件在生产环境的加载问题",
+    "添加生产部署脚本和构建优化",
+    "完善Tailwind CSS集成和样式配置",
+    "优化生产构建流程和资源管理",
     "修复部署脚本start.sh的严重缺陷",
-    "优化代码更新流程，避免删除工作目录",
-    "改进服务器部署稳定性和可靠性",
-    "完善前端服务外部访问配置",
-    "提升生产环境部署成功率",
-    "解决'No such file or directory'部署错误",
-    "改用git stash + git pull替代删除重建方式",
-    "添加--host 0.0.0.0参数确保服务外部可访问"
+    "改进服务器部署稳定性和可靠性"
   ],
   "compatibility": {
     "backward": "v2.0.7",
@@ -20,25 +20,26 @@
   },
   "changelog": {
     "added": [
-      "部署脚本错误处理和稳定性改进",
-      "git stash机制处理本地文件冲突",
-      "前端服务外部访问配置优化",
-      "部署流程可靠性检查机制"
+      "index.production.html生产专用HTML模板",
+      "vite.config.production.ts生产构建配置",
+      "deploy-production.sh生产部署脚本",
+      "terser依赖用于生产代码压缩",
+      "Tailwind CSS完整集成和配置",
+      "postcss.config.js和tailwind.config.js配置文件"
     ],
     "updated": [
-      "start.sh部署脚本完全重构",
-      "代码更新策略从删除重建改为增量更新",
-      "npm run preview命令添加外部访问参数",
-      "部署流程错误处理和日志记录优化"
+      "package.json构建脚本使用生产配置",
+      "生产构建流程优化和资源管理",
+      "依赖管理和版本兼容性改进",
+      "构建输出文件命名和组织结构"
     ],
     "fixed": [
-      "start.sh脚本删除自身工作目录的严重缺陷",
-      "部署过程中'No such file or directory'错误",
-      "git clone失败导致的index-pack错误",
-      "服务器部署时工作目录丢失问题",
-      "前端服务无法外部访问的网络配置问题",
-      "package-lock.json文件冲突导致的部署中断",
-      "部署脚本逻辑错误导致的服务启动失败"
+      "生产环境新用户白屏404错误 (GET /api.ts)",
+      "TypeScript源文件在生产环境的错误引用",
+      "开发模式HTML模板在生产环境的使用问题",
+      "生产构建缺少JavaScript入口点",
+      "资源文件路径和加载问题",
+      "合并冲突和依赖版本不一致问题"
     ]
   },
   "metrics": {
