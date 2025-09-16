@@ -6,16 +6,13 @@ set -e  # 遇到错误时停止执行
 
 echo "开始部署 codebuddy..."
 
-# 删除旧的项目目录
-echo "删除旧的项目目录..."
-rm -rf /opt/codebuddy
-
-# 克隆最新代码
-echo "克隆最新代码..."
-git clone git@gitee.com:fengyikai/codebuddy.git /opt/codebuddy
-
 # 进入项目目录
 cd /opt/codebuddy
+
+# 更新代码（不删除目录）
+echo "更新代码..."
+git stash
+git pull origin master
 
 # 停止现有服务
 echo "停止现有服务..."
@@ -103,7 +100,7 @@ fi
 
 echo "前端构建成功，启动静态文件服务..."
 # 启动前端服务（使用预览模式提供静态文件）
-nohup npm run preview > frontend.log 2>&1 &
+nohup npm run preview --host 0.0.0.0 --port 5173 > frontend.log 2>&1 &
 echo $! > frontend.pid
 
 echo "部署完成！"
