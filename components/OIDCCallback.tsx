@@ -46,11 +46,22 @@ const OIDCCallback: React.FC = () => {
             try {
                 console.log('Starting token exchange with code:', code);
                 
-                // 检查授权码是否已被使用（从localStorage）
+                // 多重检查防止重复使用授权码
+                const sessionKey = `oidc_processing_${code}`;
                 const usedCodes = JSON.parse(localStorage.getItem('used_oidc_codes') || '[]');
+                
+                // 检查是否正在处理相同的授权码
+                if (sessionStorage.getItem(sessionKey)) {
+                    throw new Error('授权码正在处理中，请稍候');
+                }
+                
+                // 检查授权码是否已被使用
                 if (usedCodes.includes(code)) {
                     throw new Error('授权码已被使用，请重新登录');
                 }
+                
+                // 标记正在处理
+                sessionStorage.setItem(sessionKey, 'processing');
                 
                 // 通过后端API交换授权码获取token
                 const tokenResponse = await fetch(`${appConfig.apiBaseUrl}/oidc-token`, {
@@ -78,6 +89,9 @@ const OIDCCallback: React.FC = () => {
                 // 标记授权码为已使用
                 const updatedUsedCodes = [...usedCodes, code];
                 localStorage.setItem('used_oidc_codes', JSON.stringify(updatedUsedCodes));
+                
+                // 清理处理标记
+                sessionStorage.removeItem(sessionKey);
                 
                 // 清理过期的授权码记录（保留最近10个）
                 if (updatedUsedCodes.length > 10) {
@@ -140,6 +154,10 @@ const OIDCCallback: React.FC = () => {
                 console.error('OIDC callback error:', err);
                 setStatus('error');
                 setError(err instanceof Error ? err.message : 'Unknown error occurred');
+                
+                // 清理处理标记
+                const sessionKey = `oidc_processing_${code}`;
+                sessionStorage.removeItem(sessionKey);
             } finally {
                 // 标记为已处理
                 hasProcessedRef.current = true;
