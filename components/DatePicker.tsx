@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Calendar } from './Calendar';
 import { IconCalendar } from './Icons';
 import { useDropdownPosition } from '../hooks/useDropdownPosition';
@@ -14,58 +15,39 @@ interface DatePickerProps {
 export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDate, placeholder = '选择日期', align = 'left' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState(selectedDate ? new Date(selectedDate) : new Date());
-  const [showAbove, setShowAbove] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
 
-  // 智能定位逻辑，检测空间并决定向上还是向下展示
-  const calculatePosition = () => {
-    if (!buttonRef.current) return false;
-    
-    const buttonRect = buttonRef.current.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const calendarHeight = 320; // 日历组件的大概高度
-    
-    // 检查下方空间是否足够
-    const spaceBelow = viewportHeight - buttonRect.bottom;
-    const spaceAbove = buttonRect.top;
-    
-    // 如果下方空间不足且上方空间更充足，则向上展示
-    return spaceBelow < calendarHeight && spaceAbove > spaceBelow;
-  };
+  // 使用 useDropdownPosition hook 来计算位置
+  const menuStyle = useDropdownPosition({ 
+    triggerRef: buttonRef, 
+    menuRef: calendarContainerRef, 
+    isOpen,
+    align: align === 'right' ? 'end' : 'start'
+  });
 
   const handleToggleCalendar = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!isOpen) {
-      // 在打开之前先计算位置，避免闪烁
-      const shouldShowAbove = calculatePosition();
-      setShowAbove(shouldShowAbove);
-    }
-    
     setIsOpen(!isOpen);
   };
 
-  const calendarStyle: React.CSSProperties = isOpen ? {
-    position: 'absolute',
-    ...(showAbove ? { bottom: '100%', marginBottom: '2px' } : { top: '100%', marginTop: '2px' }),
-    ...(align === 'right' ? { right: '0' } : { left: '0' }),
-    zIndex: 9999
-  } : { display: 'none' };
-
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node) &&
+          calendarContainerRef.current && !calendarContainerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isOpen]);
 
   const handleDateSelect = (date: Date) => {
       const year = date.getFullYear();
@@ -74,6 +56,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
       onSelectDate(`${year}-${month}-${day}`);
       setIsOpen(false);
   }
+
+  // 日历弹窗内容
+  const calendarContent = isOpen ? (
+    <div 
+      ref={calendarContainerRef} 
+      style={menuStyle}
+      className="bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-lg shadow-xl"
+    >
+      <Calendar 
+        currentDate={calendarDate}
+        setCurrentDate={setCalendarDate}
+        selectedDate={selectedDate ? new Date(selectedDate) : undefined}
+        onSelectDate={handleDateSelect}
+      />
+    </div>
+  ) : null;
 
   return (
     <div className="relative" ref={pickerRef} onClick={(e) => e.stopPropagation()}>
@@ -85,16 +83,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
         <span className={!selectedDate ? 'text-gray-400 dark:text-gray-500' : ''}>{selectedDate ? formatDateOnly(selectedDate) : placeholder}</span>
         <IconCalendar className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
       </button>
-      {isOpen && (
-        <div ref={calendarContainerRef} style={calendarStyle}>
-          <Calendar 
-            currentDate={calendarDate}
-            setCurrentDate={setCalendarDate}
-            selectedDate={selectedDate ? new Date(selectedDate) : undefined}
-            onSelectDate={handleDateSelect}
-          />
-        </div>
-      )}
+      {/* 使用 Portal 渲染到 document.body，避免 z-index 冲突 */}
+      {calendarContent && ReactDOM.createPortal(calendarContent, document.body)}
     </div>
   );
 };

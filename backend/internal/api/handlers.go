@@ -943,6 +943,7 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("OIDC Token Exchange - Invalid request: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -956,47 +957,75 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 	formData := fmt.Sprintf("grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s&client_secret=%s",
 		req.Code, req.RedirectURI, clientID, clientSecret)
 
-	fmt.Printf("OIDC Token request - URL: %s, Data: %s\n", tokenEndpoint, formData)
+	fmt.Printf("OIDC Token Exchange - Starting...\n")
+	fmt.Printf("  URL: %s\n", tokenEndpoint)
+	fmt.Printf("  Code: %s\n", req.Code)
+	fmt.Printf("  RedirectURI: %s\n", req.RedirectURI)
+	fmt.Printf("  ClientID: %s\n", clientID)
+	fmt.Printf("  FormData: %s\n", formData)
 
 	tokenReq, err := http.NewRequest("POST", tokenEndpoint, bytes.NewBufferString(formData))
 	if err != nil {
+		fmt.Printf("OIDC Token Exchange - Failed to create request: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token request"})
 		return
 	}
 
 	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenReq.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: 30 * time.Second}
+	
+	fmt.Printf("OIDC Token Exchange - Sending request to %s\n", tokenEndpoint)
 	resp, err := client.Do(tokenReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		fmt.Printf("OIDC Token Exchange - Network error: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to exchange token",
+			"details": err.Error(),
+		})
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Printf("OIDC Token Exchange - Failed to read response: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read token response"})
 		return
 	}
 
+	fmt.Printf("OIDC Token Exchange - Response received:\n")
+	fmt.Printf("  Status: %d\n", resp.StatusCode)
+	fmt.Printf("  Headers: %v\n", resp.Header)
+	fmt.Printf("  Body: %s\n", string(body))
+
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("OIDC Token exchange failed - Status: %d, Response: %s\n", resp.StatusCode, string(body))
+		fmt.Printf("OIDC Token Exchange - Failed with status %d\n", resp.StatusCode)
+		
+		// 尝试解析错误响应
+		var errorResp map[string]interface{}
+		if err := json.Unmarshal(body, &errorResp); err == nil {
+			fmt.Printf("OIDC Token Exchange - Parsed error: %v\n", errorResp)
+		}
+		
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("Token exchange failed with status %d: %s", resp.StatusCode, string(body)),
 		})
 		return
 	}
 
-	fmt.Printf("OIDC Token exchange successful - Response: %s\n", string(body))
+	fmt.Printf("OIDC Token Exchange - Success!\n")
 
 	// 解析token响应
 	var tokenResponse map[string]interface{}
 	if err := json.Unmarshal(body, &tokenResponse); err != nil {
+		fmt.Printf("OIDC Token Exchange - Failed to parse response: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse token response"})
 		return
 	}
 
+	fmt.Printf("OIDC Token Exchange - Parsed response: %v\n", tokenResponse)
 	c.JSON(http.StatusOK, tokenResponse)
 }
 

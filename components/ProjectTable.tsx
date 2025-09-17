@@ -185,7 +185,7 @@ const EditableCell = ({ value, onSave, type = 'text', className = '', options, d
             if (selectType === 'status') return <StatusBadge status={value as ProjectStatus} />;
             if (selectType === 'priority') return <PriorityBadge priority={value as Priority} />;
         }
-        return value || <span className="text-gray-400 dark:text-gray-500">N/A</span>;
+        return value || <span className="text-gray-400 dark:text-gray-500">-</span>;
     }
 
     if (type === 'select') {
@@ -326,7 +326,7 @@ const OkrMultiSelectCell: React.FC<{
         ) : (selectedKrIds || []).length > 0 ? (
           <span className="font-semibold text-indigo-600 dark:text-indigo-400">{(selectedKrIds || []).length}</span>
         ) : (
-          <span className="text-gray-400 dark:text-gray-500">N/A</span>
+          <span className="text-gray-400 dark:text-gray-500">-</span>
         )}
       </div>
 
@@ -693,7 +693,7 @@ const ProjectRow: React.FC<ProjectRowProps> = React.memo(({ project, allUsers, a
                         showTooltip={true}
                     />
                 ) : (
-                    <span className="text-gray-400 dark:text-gray-500">N/A</span>
+                    <span className="text-gray-400 dark:text-gray-500">-</span>
                 )}
             </div>
         </td>
@@ -892,7 +892,11 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
   };
 
   const getThClassName = (index: number) => {
-    let classes = "text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase p-4 border-b border-t border-gray-200 dark:border-[#363636] align-middle bg-gray-50 dark:bg-[#2a2a2a]";
+    // 需要居中的字段索引：产品经理(7)、后端研发(8)、前端研发(9)、测试(10)、提出时间(11)、上线时间(12)
+    const centerAlignedColumns = [7, 8, 9, 10, 11, 12];
+    const textAlign = centerAlignedColumns.includes(index) ? 'text-center' : 'text-left';
+    
+    let classes = `${textAlign} text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase p-4 border-b border-t border-gray-200 dark:border-[#363636] align-middle bg-gray-50 dark:bg-[#2a2a2a]`;
     if (index === leftStickyColumnCount - 1) {
         classes += ' border-r-2 border-gray-300 dark:border-[#4a4a4a]';
     }
@@ -977,7 +981,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
                       </div>
                     ) : (
                       <div 
-                        className={`flex items-center gap-1 ${isSortable && onSort ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''}`}
+                        className={`flex items-center gap-1 ${[7, 8, 9, 10, 11, 12].includes(index) ? 'justify-center' : ''} ${isSortable && onSort ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''}`}
                         onClick={() => isSortable && onSort && onSort(header.key as SortField)}
                       >
                         <span>{header.label}</span>

@@ -38,7 +38,7 @@ export const TruncatedText: React.FC<TruncatedTextProps> = ({
   }, [text, maxLines]);
 
   if (!text) {
-    return <span className="text-gray-400 dark:text-gray-500">N/A</span>;
+    return <span className="text-gray-400 dark:text-gray-500">-</span>;
   }
 
   const displayStyle = needsTruncation && !isExpanded ? {

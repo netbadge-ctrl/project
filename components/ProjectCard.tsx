@@ -1,5 +1,5 @@
 import React from 'react';
-import { Project, User, Priority, ProjectStatus } from '../types';
+import { Project, User, Priority, ProjectStatus, TeamMember } from '../types';
 
 const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
     const priorityStyles: Record<Priority, string> = {
@@ -44,12 +44,87 @@ interface ProjectCardProps {
   onClick?: () => void;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project, allUsers, onClick }) => {
-  const pmNames = project.productManagers
-    .map(m => allUsers.find(u => u.id === m.userId)?.name)
-    .filter(Boolean)
-    .join(', ');
+// 格式化日期为 MM-DD 格式
+const formatScheduleDate = (dateString: string | undefined): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
+  } catch {
+    return '';
+  }
+};
 
+// 获取成员的排期信息
+const getMemberSchedule = (member: TeamMember): string => {
+  // 检查是否有timeSlots
+  if (member.timeSlots && member.timeSlots.length > 0) {
+    const firstSlot = member.timeSlots[0];
+    const startDate = formatScheduleDate(firstSlot.startDate);
+    const endDate = formatScheduleDate(firstSlot.endDate);
+    if (startDate && endDate) {
+      return `${startDate}至${endDate}`;
+    } else if (startDate) {
+      return startDate;
+    }
+  }
+  
+  // 兼容旧的startDate/endDate字段
+  if (member.startDate || member.endDate) {
+    const startDate = formatScheduleDate(member.startDate);
+    const endDate = formatScheduleDate(member.endDate);
+    if (startDate && endDate) {
+      return `${startDate}至${endDate}`;
+    } else if (startDate) {
+      return startDate;
+    }
+  }
+  
+  return '';
+};
+
+// 按排期分组成员并格式化显示
+const formatMembersWithSchedule = (members: TeamMember[], allUsers: User[]): string => {
+  if (!members || members.length === 0) return '-';
+  
+  const scheduleGroups = new Map<string, { users: User[]; schedule: string }>();
+  
+  members.forEach(member => {
+    const user = allUsers.find(u => u.id === member.userId);
+    if (!user) return;
+    
+    const schedule = getMemberSchedule(member);
+    const key = schedule || '无排期';
+    
+    if (!scheduleGroups.has(key)) {
+      scheduleGroups.set(key, { users: [], schedule });
+    }
+    scheduleGroups.get(key)!.users.push(user);
+  });
+  
+  // 转换为数组并排序（有排期的在前，无排期的在后）
+  const sortedGroups = Array.from(scheduleGroups.entries())
+    .map(([key, data]) => ({ schedule: key, users: data.users, scheduleDisplay: data.schedule }))
+    .sort((a, b) => {
+      if (a.schedule === '无排期') return 1;
+      if (b.schedule === '无排期') return -1;
+      return a.schedule.localeCompare(b.schedule);
+    });
+  
+  return sortedGroups.map(group => {
+    const userNames = group.users.map(u => u.name).join(', ');
+    if (group.schedule === '无排期') {
+      return userNames;
+    } else {
+      return `${userNames}(${group.scheduleDisplay})`;
+    }
+  }).join('; ');
+};
+
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, allUsers, onClick }) => {
   const cardClasses = "bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl p-4 flex flex-col gap-3 hover:border-[#6C63FF] transition-all duration-300";
   const clickableClasses = onClick ? "cursor-pointer hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/10" : "";
 
@@ -66,33 +141,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, allUsers, onC
       <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 space-y-1.5">
         <div className="flex justify-between">
           <span>产品经理:</span>
-          <span className="font-medium text-gray-700 dark:text-gray-300">{pmNames || 'N/A'}</span>
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            {formatMembersWithSchedule(project.productManagers, allUsers)}
+          </span>
         </div>
         <div className="flex justify-between">
           <span>后端研发:</span>
           <span className="font-medium text-gray-700 dark:text-gray-300">
-            {project.backendDevelopers
-              .map(m => allUsers.find(u => u.id === m.userId)?.name)
-              .filter(Boolean)
-              .join(', ') || 'N/A'}
+            {formatMembersWithSchedule(project.backendDevelopers, allUsers)}
           </span>
         </div>
         <div className="flex justify-between">
           <span>前端研发:</span>
           <span className="font-medium text-gray-700 dark:text-gray-300">
-            {project.frontendDevelopers
-              .map(m => allUsers.find(u => u.id === m.userId)?.name)
-              .filter(Boolean)
-              .join(', ') || 'N/A'}
+            {formatMembersWithSchedule(project.frontendDevelopers, allUsers)}
           </span>
         </div>
         <div className="flex justify-between">
           <span>测试:</span>
           <span className="font-medium text-gray-700 dark:text-gray-300">
-            {project.qaTesters
-              .map(m => allUsers.find(u => u.id === m.userId)?.name)
-              .filter(Boolean)
-              .join(', ') || 'N/A'}
+            {formatMembersWithSchedule(project.qaTesters, allUsers)}
           </span>
         </div>
       </div>

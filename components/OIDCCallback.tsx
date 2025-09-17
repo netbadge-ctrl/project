@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { appConfig } from '../config/env';
 
@@ -11,9 +11,21 @@ const OIDC_CONFIG = {
 const OIDCCallback: React.FC = () => {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [error, setError] = useState<string>('');
+    const hasProcessedRef = useRef(false); // 防止重复处理
+    const isProcessingRef = useRef(false); // 防止并发处理
 
     useEffect(() => {
+        // 防止重复执行
+        if (hasProcessedRef.current || isProcessingRef.current) {
+            console.log('OIDC callback already processed or processing, skipping...');
+            return;
+        }
+
         const handleCallback = async () => {
+            // 设置处理中标志
+            isProcessingRef.current = true;
+            
+            console.log('Starting OIDC callback processing...');
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const state = urlParams.get('state');
@@ -33,6 +45,12 @@ const OIDCCallback: React.FC = () => {
 
             try {
                 console.log('Starting token exchange with code:', code);
+                
+                // 检查授权码是否已被使用（从localStorage）
+                const usedCodes = JSON.parse(localStorage.getItem('used_oidc_codes') || '[]');
+                if (usedCodes.includes(code)) {
+                    throw new Error('授权码已被使用，请重新登录');
+                }
                 
                 // 通过后端API交换授权码获取token
                 const tokenResponse = await fetch(`${appConfig.apiBaseUrl}/oidc-token`, {
@@ -56,6 +74,15 @@ const OIDCCallback: React.FC = () => {
 
                 const tokens = await tokenResponse.json();
                 console.log('Received tokens:', tokens);
+                
+                // 标记授权码为已使用
+                const updatedUsedCodes = [...usedCodes, code];
+                localStorage.setItem('used_oidc_codes', JSON.stringify(updatedUsedCodes));
+                
+                // 清理过期的授权码记录（保留最近10个）
+                if (updatedUsedCodes.length > 10) {
+                    localStorage.setItem('used_oidc_codes', JSON.stringify(updatedUsedCodes.slice(-10)));
+                }
                 
                 // 解析用户信息
                 if (tokens.id_token) {
@@ -113,11 +140,15 @@ const OIDCCallback: React.FC = () => {
                 console.error('OIDC callback error:', err);
                 setStatus('error');
                 setError(err instanceof Error ? err.message : 'Unknown error occurred');
+            } finally {
+                // 标记为已处理
+                hasProcessedRef.current = true;
+                isProcessingRef.current = false;
             }
         };
 
         handleCallback();
-    }, []);
+    }, []); // 空依赖数组，确保只执行一次
 
     if (status === 'loading') {
         return (
