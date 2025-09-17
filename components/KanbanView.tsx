@@ -348,7 +348,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
 
                         return (
                           <div
-                            key={`${item.project.id}-${item.lane}`}
+                            key={`${item.project.id}-${item.lane}-${item.startDate}-${item.endDate}`}
                             className={`absolute rounded-md ${color} px-2 flex items-center text-xs font-semibold text-white/90 tooltip-container group/item`}
                             style={{
                               left: `${left}%`,

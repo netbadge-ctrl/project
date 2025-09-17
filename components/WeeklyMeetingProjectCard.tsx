@@ -27,7 +27,7 @@ const globalTooltipController = {
 const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project: Project }> = ({ priority, projectOkrs, project }) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const tooltipId = React.useRef(`priority-${project.id}-${Math.random()}`);
+    const tooltipId = React.useRef(`priority-${project.id}-${Date.now()}-${Math.random()}`);
     
     const closeTooltip = React.useCallback(() => {
         setShowTooltip(false);
@@ -116,7 +116,7 @@ const PriorityBadge: React.FC<{ priority: Priority; projectOkrs: OKR[]; project:
 const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers: User[] }> = ({ status, project, allUsers }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const tooltipId = React.useRef(`status-${project.id}-${Math.random()}`);
+  const tooltipId = React.useRef(`status-${project.id}-${Date.now()}-${Math.random()}`);
   
   const closeTooltip = React.useCallback(() => {
     setShowTooltip(false);
@@ -281,7 +281,7 @@ interface WeeklyMeetingProjectCardProps {
 const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> = ({html, title, projectId}) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const tooltipId = React.useRef(`update-${projectId}-${title}-${Math.random()}`);
+    const tooltipId = React.useRef(`update-${projectId}-${title}-${Date.now()}-${Math.random()}`);
     const content = html || '<p class="text-gray-400 dark:text-gray-500 italic">无</p>';
     
     const closeTooltip = React.useCallback(() => {
@@ -362,7 +362,7 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
 const BusinessProblemDisplay: React.FC<{businessProblem: string, projectId: string}> = ({businessProblem, projectId}) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const tooltipId = React.useRef(`business-${projectId}-${Math.random()}`);
+    const tooltipId = React.useRef(`business-${projectId}-${Date.now()}-${Math.random()}`);
     const content = businessProblem || '无';
     
     const closeTooltip = React.useCallback(() => {

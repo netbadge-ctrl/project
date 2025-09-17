@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
-import { api } from '../api';
+import { api } from '../api.ts';
 import { User } from '../types';
 import { appConfig, isDevelopment } from '../config/env';
 

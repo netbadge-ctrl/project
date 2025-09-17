@@ -18,7 +18,7 @@ export const MultiTimeSlotEditor: React.FC<MultiTimeSlotEditorProps> = ({
 }) => {
   const handleAddTimeSlot = () => {
     const newSlot: TimeSlot = {
-      id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.random()}`,
       startDate: '',
       endDate: '',
       description: ''

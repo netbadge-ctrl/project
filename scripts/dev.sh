@@ -5,10 +5,19 @@
 echo "🔧 启动开发环境..."
 echo "📋 配置信息:"
 echo "  - 环境: development"
+echo "  - 版本: 2.8.0"
 echo "  - OIDC认证: 禁用"
 echo "  - API地址: http://localhost:9000/api"
 echo "  - 模拟用户: 陈楠 (ID: 22231)"
+echo "  - Tailwind CSS: 本地版本 3.4.17"
 echo ""
+
+# 检查依赖
+echo "📦 检查依赖..."
+if [ ! -d "node_modules" ]; then
+    echo "安装依赖..."
+    npm install
+fi
 
 # 设置开发环境变量
 export VITE_APP_ENV=development

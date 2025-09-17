@@ -11,7 +11,7 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { RoleEditModal } from './components/RoleEditModal';
 import { CommentModal } from './components/CommentModal';
 import { ChangeLogModal } from './components/ChangeLogModal';
-import { api } from './api';
+import { api } from './api.ts';
 import { Project, ProjectStatus, Role, User, ProjectRoleKey, OKR, Priority, Comment, ChangeLogEntry, OkrSet } from './types';
 
 export type ViewType = 'overview' | 'okr' | 'kanban' | 'personal' | 'weekly';

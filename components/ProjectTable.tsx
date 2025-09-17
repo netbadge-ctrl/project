@@ -1027,7 +1027,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ projects, allUsers, 
             {/* 渲染可见的项目行 */}
             {visibleProjects.map((project, index) => (
               <ProjectRow
-                key={`${project.id}-${index}`}
+                key={project.id}
                 project={project}
                 allUsers={allUsers}
                 activeOkrs={activeOkrs}

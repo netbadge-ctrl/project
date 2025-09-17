@@ -17,6 +17,9 @@ interface RoleEditModalProps {
   onSave: (projectId: string, roleKey: ProjectRoleKey, newRole: Role) => void;
 }
 
+// 生成唯一ID的辅助函数
+const generateUniqueId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 type TeamMemberWithState = TeamMember & { useSharedSchedule: boolean; useMultiTimeSlots: boolean; _tempId: string };
 
 export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, roleName, allUsers, onClose, onSave }) => {
@@ -27,13 +30,13 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
         useMultiTimeSlots: false,
         timeSlots: m.timeSlots && m.timeSlots.length > 0 ? m.timeSlots : [
           {
-            id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`,
+            id: `slot_${generateUniqueId()}_${index}`,
             startDate: m.startDate || '',
             endDate: m.endDate || '',
             description: ''
           }
         ],
-        _tempId: `member_${index}_${Date.now()}`
+        _tempId: `member_${index}_${generateUniqueId()}`
     }))
   );
   
@@ -89,12 +92,12 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
         useSharedSchedule: !isFirstMember,
         useMultiTimeSlots: false,
         timeSlots: [{
-          id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `slot_${generateUniqueId()}`,
           startDate: '',
           endDate: '',
           description: ''
         }],
-        _tempId: `member_new_${Date.now()}`
+        _tempId: `member_new_${generateUniqueId()}`
       };
       setCurrentTeam(prev => [...prev, newMember]);
       setIsAddingMember(false);
@@ -144,7 +147,7 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
             startDate: '',
             endDate: '',
             timeSlots: [{
-              id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              id: `slot_${generateUniqueId()}`,
               startDate: '',
               endDate: '',
               description: ''
@@ -350,7 +353,7 @@ export const RoleEditModal: React.FC<RoleEditModalProps> = ({ project, roleKey, 
                                         <button
                                             onClick={() => {
                                                 const newSlot = {
-                                                    id: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                                    id: `slot_${generateUniqueId()}`,
                                                     startDate: '',
                                                     endDate: '',
                                                     description: ''

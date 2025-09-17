@@ -81,6 +81,7 @@ cd ..
 # 启动前端服务
 echo "启动前端服务..."
 # 安装依赖（如果需要）
+echo "检查并安装前端依赖..."
 npm install
 
 # 设置生产环境变量
@@ -90,6 +91,11 @@ export VITE_FRONTEND_URL=http://120.92.36.175:5173
 export VITE_ENABLE_OIDC=true
 export VITE_MOCK_USER_ID=
 source /root/.bash_profile
+
+echo "当前项目版本: 2.8.0"
+echo "Tailwind CSS: 本地版本 3.4.17"
+echo "React: 19.1.1"
+echo "Vite: 6.2.0"
 
 # 启动前端服务（使用开发模式以保持兼容性）
 nohup npm run dev > frontend.log 2>&1 &

@@ -204,7 +204,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                                         });
                                         
                                         return Array.from(uniqueKrs.values()).map((kr, index) => (
-                                            <li key={`${kr.id}-${index}`} className="text-xs text-gray-700 dark:text-gray-300">
+                                            <li key={kr.id} className="text-xs text-gray-700 dark:text-gray-300">
                                                 KR: {kr.description}
                                             </li>
                                         ));
