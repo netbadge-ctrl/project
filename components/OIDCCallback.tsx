@@ -93,6 +93,9 @@ const OIDCCallback: React.FC = () => {
                 // 清理处理标记
                 sessionStorage.removeItem(sessionKey);
                 
+                // 立即清理URL参数，防止刷新页面时重复处理
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
                 // 清理过期的授权码记录（保留最近10个）
                 if (updatedUsedCodes.length > 10) {
                     localStorage.setItem('used_oidc_codes', JSON.stringify(updatedUsedCodes.slice(-10)));

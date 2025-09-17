@@ -79,13 +79,11 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <FilterStateProvider>
-          <AppGate />
-        </FilterStateProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider>
+    <AuthProvider>
+      <FilterStateProvider>
+        <AppGate />
+      </FilterStateProvider>
+    </AuthProvider>
+  </ThemeProvider>
 );
