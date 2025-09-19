@@ -1,11 +1,12 @@
 // API 配置和接口封装
-const API_BASE_URL = 'http://localhost:9000';
+// 使用环境变量，如果未设置则使用本地默认值
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api';
 
 // API 请求封装
 export const api = {
   // 获取用户信息
   async getUser() {
-    const response = await fetch(`${API_BASE_URL}/api/user`);
+    const response = await fetch(`${API_BASE_URL}/user`);
     if (!response.ok) {
       throw new Error('Failed to fetch user');
     }
@@ -14,7 +15,7 @@ export const api = {
 
   // 获取用户列表
   async fetchUsers() {
-    const response = await fetch(`${API_BASE_URL}/api/users`);
+    const response = await fetch(`${API_BASE_URL}/users`);
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
@@ -23,7 +24,7 @@ export const api = {
 
   // 获取项目列表
   async getProjects() {
-    const response = await fetch(`${API_BASE_URL}/api/projects`);
+    const response = await fetch(`${API_BASE_URL}/projects`);
     if (!response.ok) {
       throw new Error('Failed to fetch projects');
     }
@@ -37,7 +38,7 @@ export const api = {
 
   // 获取OKR集合
   async fetchOkrSets() {
-    const response = await fetch(`${API_BASE_URL}/api/okr-sets`);
+    const response = await fetch(`${API_BASE_URL}/okr-sets`);
     if (!response.ok) {
       throw new Error('Failed to fetch OKR sets');
     }
@@ -46,7 +47,7 @@ export const api = {
 
   // 创建OKR集合
   async createOkrSet(okrSet: any) {
-    const response = await fetch(`${API_BASE_URL}/api/okr-sets`, {
+    const response = await fetch(`${API_BASE_URL}/okr-sets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +62,7 @@ export const api = {
 
   // 更新OKR集合
   async updateOkrSet(periodId: string, okrSet: any) {
-    const response = await fetch(`${API_BASE_URL}/api/okr-sets/${periodId}`, {
+    const response = await fetch(`${API_BASE_URL}/okr-sets/${periodId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export const api = {
 
   // 执行周度滚动
   async performWeeklyRollover() {
-    const response = await fetch(`${API_BASE_URL}/api/perform-weekly-rollover`, {
+    const response = await fetch(`${API_BASE_URL}/perform-weekly-rollover`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export const api = {
 
   // 用户登录
   async login(credentials: any) {
-    const response = await fetch(`${API_BASE_URL}/api/login`, {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export const api = {
 
   // 检查认证状态
   async checkAuth() {
-    const response = await fetch(`${API_BASE_URL}/api/check-auth`);
+    const response = await fetch(`${API_BASE_URL}/check-auth`);
     if (!response.ok) {
       throw new Error('Failed to check auth');
     }
@@ -114,7 +115,7 @@ export const api = {
 
   // OIDC令牌交换
   async oidcTokenExchange(token: any) {
-    const response = await fetch(`${API_BASE_URL}/api/oidc-token`, {
+    const response = await fetch(`${API_BASE_URL}/oidc-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ export const api = {
 
   // 获取任务列表
   async getTasks() {
-    const response = await fetch(`${API_BASE_URL}/api/tasks`);
+    const response = await fetch(`${API_BASE_URL}/tasks`);
     if (!response.ok) {
       throw new Error('Failed to fetch tasks');
     }
@@ -138,7 +139,7 @@ export const api = {
 
   // 创建项目
   async createProject(project: any) {
-    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+    const response = await fetch(`${API_BASE_URL}/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export const api = {
 
   // 更新项目
   async updateProject(id: string, project: any) {
-    const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ export const api = {
 
   // 删除项目
   async deleteProject(id: string) {
-    const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) {
@@ -179,7 +180,7 @@ export const api = {
 
   // 创建任务
   async createTask(task: any) {
-    const response = await fetch(`${API_BASE_URL}/api/tasks`, {
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export const api = {
 
   // 更新任务
   async updateTask(id: string, task: any) {
-    const response = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -209,7 +210,7 @@ export const api = {
 
   // 删除任务
   async deleteTask(id: string) {
-    const response = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) {
@@ -220,7 +221,7 @@ export const api = {
 
   // 刷新用户数据
   async refreshUsers() {
-    const response = await fetch(`${API_BASE_URL}/api/refresh-users`, {
+    const response = await fetch(`${API_BASE_URL}/refresh-users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -234,7 +235,7 @@ export const api = {
 
   // 同步员工数据
   async syncEmployees() {
-    const response = await fetch(`${API_BASE_URL}/api/sync-employees`, {
+    const response = await fetch(`${API_BASE_URL}/sync-employees`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -2,6 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { appConfig } from '../config/env';
 
+// 全局标志，防止多个组件实例同时处理OIDC回调
+let globalOIDCProcessing = false;
+
 const OIDC_CONFIG = {
     ...appConfig.oidc,
     // 可能需要使用不同的token endpoint
@@ -15,21 +18,40 @@ const OIDCCallback: React.FC = () => {
     const isProcessingRef = useRef(false); // 防止并发处理
 
     useEffect(() => {
-        // 防止重复执行
+        // 增强的重复执行防护
         if (hasProcessedRef.current || isProcessingRef.current) {
             console.log('OIDC callback already processed or processing, skipping...');
+            return;
+        }
+
+        // 检查URL中是否还有授权码参数，如果没有则说明已经处理过
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (!code) {
+            console.log('No authorization code in URL, callback already processed');
+            hasProcessedRef.current = true;
+            return;
+        }
+
+        // 全局处理标志检查
+        if (globalOIDCProcessing) {
+            console.log('Another OIDC callback is already being processed globally');
             return;
         }
 
         const handleCallback = async () => {
             // 设置处理中标志
             isProcessingRef.current = true;
+            globalOIDCProcessing = true;
             
             console.log('Starting OIDC callback processing...');
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const state = urlParams.get('state');
             const error = urlParams.get('error');
+            
+            // 立即清理URL参数，防止刷新页面时重复处理
+            window.history.replaceState({}, document.title, window.location.pathname);
 
             if (error) {
                 setStatus('error');
@@ -80,7 +102,19 @@ const OIDCCallback: React.FC = () => {
                 if (!tokenResponse.ok) {
                     const errorText = await tokenResponse.text();
                     console.error('Token exchange error response:', errorText);
-                    throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`);
+                    
+                    // 解析后端返回的错误信息
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        if (errorData.error) {
+                            throw new Error(errorData.error);
+                        } else {
+                            throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`);
+                        }
+                    } catch (parseError) {
+                        // 如果解析失败，使用原始错误信息
+                        throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`);
+                    }
                 }
 
                 const tokens = await tokenResponse.json();
@@ -92,9 +126,6 @@ const OIDCCallback: React.FC = () => {
                 
                 // 清理处理标记
                 sessionStorage.removeItem(sessionKey);
-                
-                // 立即清理URL参数，防止刷新页面时重复处理
-                window.history.replaceState({}, document.title, window.location.pathname);
                 
                 // 清理过期的授权码记录（保留最近10个）
                 if (updatedUsedCodes.length > 10) {
@@ -165,6 +196,7 @@ const OIDCCallback: React.FC = () => {
                 // 标记为已处理
                 hasProcessedRef.current = true;
                 isProcessingRef.current = false;
+                globalOIDCProcessing = false;
             }
         };
 
@@ -189,14 +221,29 @@ const OIDCCallback: React.FC = () => {
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Login Failed</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">登录失败</h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-                    >
-                        Return to Home
-                    </button>
+                    <div className="flex flex-col gap-2">
+                        <button
+                            onClick={() => window.location.href = '/'}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+                        >
+                            返回首页
+                        </button>
+                        {error.includes('授权码') && (
+                            <button
+                                onClick={() => {
+                                    // 清理本地存储的授权码记录
+                                    localStorage.removeItem('used_oidc_codes');
+                                    sessionStorage.clear();
+                                    window.location.href = '/';
+                                }}
+                                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition-colors"
+                            >
+                                清理缓存并重新登录
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         );

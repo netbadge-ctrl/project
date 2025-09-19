@@ -92,13 +92,23 @@ export VITE_ENABLE_OIDC=true
 export VITE_MOCK_USER_ID=
 source /root/.bash_profile
 
-echo "当前项目版本: 2.8.0"
+echo "当前项目版本: 2.9.2"
 echo "Tailwind CSS: 本地版本 3.4.17"
 echo "React: 19.1.1"
 echo "Vite: 6.2.0"
 
-# 启动前端服务（使用开发模式以保持兼容性）
-nohup npm run dev > frontend.log 2>&1 &
+# 构建生产版本
+echo "构建生产版本..."
+npm run build
+
+if [ ! -d "dist" ]; then
+    echo "前端构建失败！"
+    exit 1
+fi
+
+echo "前端构建成功，启动预览服务..."
+# 启动前端预览服务（生产环境推荐）
+nohup npm run preview > frontend.log 2>&1 &
 echo $! > frontend.pid
 
 echo "部署完成！"

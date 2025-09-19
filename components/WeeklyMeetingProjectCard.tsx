@@ -168,7 +168,8 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
     [ProjectStatus.DevDone]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-600/50 dark:text-yellow-300 dark:border-yellow-500/60',
     [ProjectStatus.Testing]: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-600/50 dark:text-pink-300 dark:border-pink-500/60',
     [ProjectStatus.TestDone]: 'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-600/50 dark:text-teal-300 dark:border-teal-500/60',
-    [ProjectStatus.Launched]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
+    [ProjectStatus.LaunchedThisWeek]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-600/50 dark:text-green-300 dark:border-green-500/60',
+    [ProjectStatus.Completed]: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-600/50 dark:text-emerald-300 dark:border-emerald-500/60',
     [ProjectStatus.Paused]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-600/50 dark:text-red-300 dark:border-red-500/60',
     [ProjectStatus.ProjectInProgress]: 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-600/50 dark:text-violet-300 dark:border-violet-500/60',
   };
@@ -435,6 +436,22 @@ export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> =
         okr.keyResults.some(kr => (project.keyResultIds || []).includes(kr.id))
     );
 
+    // 获取产品经理姓名
+    const getProductManagerNames = () => {
+        if (!project.productManagers || project.productManagers.length === 0) {
+            return '无';
+        }
+        
+        const names = project.productManagers
+            .map(member => {
+                const user = allUsers.find(u => u.id === member.userId);
+                return user ? user.name : '未知';
+            })
+            .filter(name => name !== '未知');
+            
+        return names.length > 0 ? names.join('、') : '无';
+    };
+
     return (
         <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl flex flex-col shadow-sm hover:shadow-lg transition-shadow duration-300 w-full overflow-visible">
             {/* Card Header */}
@@ -443,6 +460,9 @@ export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> =
                 <div className="flex items-center gap-2 mt-2">
                     <PriorityBadge priority={project.priority} projectOkrs={projectOkrs} project={project} />
                     <StatusBadge status={project.status} project={project} allUsers={allUsers} />
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1 py-0.5 inline-block">
+                        产品：{getProductManagerNames()}
+                    </span>
                 </div>
             </div>
 

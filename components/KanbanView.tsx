@@ -45,8 +45,11 @@ const getWeekNumber = (d: Date) => {
 }
 
 const diffDays = (date1: Date, date2: Date) => {
-    const diffTime = date2.getTime() - date1.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // 使用更精准的日期计算，避免时区问题
+    const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+    const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+    const diffTime = d2.getTime() - d1.getTime();
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
 // --- Component ---
@@ -90,6 +93,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
   const timeline = useMemo(() => {
     const headers: { label: string, days: number }[] = [];
     let startDate: Date, endDate: Date, rangeLabel: string;
+    let dividers: { position: number, type: 'day' | 'week', label: string }[] = [];
 
     if (granularity === 'month') {
         const numMonths = 3;
@@ -105,6 +109,27 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                 label: `${monthStart.getFullYear()}年${monthStart.getMonth() + 1}月`,
                 days: diffDays(monthStart, nextMonthStart)
             });
+        }
+        
+        // 月视图中生成以周为粒度的分隔线
+        const totalDays = diffDays(startDate, endDate) + 1;
+        let currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+            const weekStart = getStartOfWeek(currentDate);
+            // 只在不是月初的周一添加分隔线，避免与月份边界重叠
+            if (weekStart >= startDate && weekStart <= endDate && weekStart.getDate() !== 1) {
+                const offsetDays = diffDays(startDate, weekStart);
+                const position = (offsetDays / totalDays) * 100;
+                const weekLabel = `W${getWeekNumber(weekStart)}`;
+                
+                dividers.push({
+                    position,
+                    type: 'week',
+                    label: weekLabel
+                });
+            }
+            currentDate = addWeeks(currentDate, 1);
         }
         
         const endMonth = monthHeaders[numMonths-1];
@@ -124,13 +149,31 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
             });
         }
         
+        // 周视图中生成每日分隔线（星期一到星期日）
+        const totalDays = diffDays(startDate, endDate) + 1;
+        const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        
+        for (let day = 0; day < totalDays; day++) {
+            const currentDate = addDays(startDate, day);
+            const dayOfWeek = currentDate.getDay();
+            // 转换为周一为0的索引
+            const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const position = (day / totalDays) * 100;
+            
+            dividers.push({
+                position,
+                type: 'day',
+                label: weekDays[dayIndex]
+            });
+        }
+        
         const endWeek = addWeeks(startDate, numWeeks - 1);
         rangeLabel = `${formatDate(startDate)} - ${formatDate(addDays(endWeek, 6))}`;
     }
 
     const totalDays = diffDays(startDate, endDate) + 1;
 
-    return { startDate, endDate, totalDays, headers, rangeLabel };
+    return { startDate, endDate, totalDays, headers, rangeLabel, dividers };
   }, [granularity, viewDate]);
 
   const handleGranularityChange = useCallback((newGranularity: 'week' | 'month') => {
@@ -315,7 +358,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
             </div>
             {/* Body */}
             <div className="relative">
-              {userSchedules.map((user) => (
+              {userSchedules.map((user, userIndex) => (
                 <div key={user.id} className="relative flex border-t border-gray-200 dark:border-[#363636] group hover:z-20">
                   <div className="w-48 flex-shrink-0 p-3 text-sm flex items-center border-r border-gray-200 dark:border-[#363636] bg-white dark:bg-[#232323] group-hover:bg-gray-50 dark:group-hover:bg-[#2a2a2a] transition-colors duration-200">
                      <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
@@ -325,6 +368,31 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                     <div className="absolute inset-0 flex">
                       {timeline.headers.map((header, idx) => (
                         <div key={`grid-${idx}`} style={{ width: `${(header.days / timeline.totalDays) * 100}%` }} className="h-full border-r border-gray-200/70 dark:border-[#363636]/50"></div>
+                      ))}
+                    </div>
+
+                    {/* Time divider lines */}
+                    <div className="absolute inset-0 pointer-events-none z-5">
+                      {timeline.dividers.map((divider, idx) => (
+                        <div
+                          key={`divider-${idx}`}
+                          className="absolute top-0 bottom-0 border-l border-dashed border-gray-300/50 dark:border-gray-500/30"
+                          style={{ left: `${divider.position}%` }}
+                          title={divider.label}
+                        >
+                          {/* 周视图中仅为周六和周日显示标签 */}
+                          {granularity === 'week' && divider.type === 'day' && (divider.label === '周六' || divider.label === '周日') && (
+                            <div className="absolute top-1 left-1 text-xs text-gray-400 dark:text-gray-500 bg-white/90 dark:bg-gray-800/90 px-1 rounded shadow-sm opacity-80 pointer-events-none select-none">
+                              {divider.label}
+                            </div>
+                          )}
+                          {/* 月视图中的周标签仅在第一行（第一个用户）显示 */}
+                          {granularity === 'month' && divider.type === 'week' && userIndex === 0 && (
+                            <div className="absolute top-1 left-1 text-xs text-gray-400 dark:text-gray-500 bg-white/90 dark:bg-gray-800/90 px-1 rounded shadow-sm opacity-80 pointer-events-none select-none">
+                              {divider.label}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
 
@@ -340,10 +408,34 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                         const clampedEndDate = itemEndDate > timeline.endDate ? timeline.endDate : itemEndDate;
                         
                         const startOffsetDays = diffDays(timeline.startDate, clampedStartDate);
+                        // 修复甘特图宽度计算，确保精准的日期范围
                         const durationDays = diffDays(clampedStartDate, clampedEndDate) + 1;
+                        
+                        // 确保甘特图不会超出当前周的边界
+                        const maxEndOffsetDays = diffDays(timeline.startDate, timeline.endDate) + 1;
+                        const actualDurationDays = Math.min(durationDays, maxEndOffsetDays - startOffsetDays);
 
                         const left = (startOffsetDays / timeline.totalDays) * 100;
-                        const width = (durationDays / timeline.totalDays) * 100;
+                        const width = (actualDurationDays / timeline.totalDays) * 100;
+                        
+                        // 调试日志，特别关注服务器改配项目
+                        if (item.project.name.includes('服务器改配') || item.project.name.includes('SP1')) {
+                          console.log('🗺️ 甘特图计算 - 服务器改配项目:', {
+                            projectName: item.project.name,
+                            startDate: item.startDate,
+                            endDate: item.endDate,
+                            timelineStart: timeline.startDate.toISOString().split('T')[0],
+                            timelineEnd: timeline.endDate.toISOString().split('T')[0],
+                            totalDays: timeline.totalDays,
+                            clampedStartDate: clampedStartDate.toISOString().split('T')[0],
+                            clampedEndDate: clampedEndDate.toISOString().split('T')[0],
+                            startOffsetDays,
+                            durationDays,
+                            actualDurationDays,
+                            left: `${left.toFixed(2)}%`,
+                            width: `${width.toFixed(2)}%`
+                          });
+                        }
                         const color = projectColors[(item.project.id.charCodeAt(1) || 0) % projectColors.length];
 
                         return (

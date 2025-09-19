@@ -138,6 +138,48 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
         setProjects(fetchedProjects);
         setOkrSets(fetchedOkrSets);
         
+        // 检查项目数据中的KR关联
+        console.log('🔧 App - Setting projects, checking KR associations:');
+        if (fetchedProjects && fetchedProjects.length > 0) {
+            fetchedProjects.forEach(project => {
+                if (project.keyResultIds && project.keyResultIds.length > 0) {
+                    console.log('🔧 App - Project with KRs:', {
+                        projectId: project.id,
+                        projectName: project.name,
+                        keyResultIds: project.keyResultIds,
+                        keyResultCount: project.keyResultIds.length
+                    });
+                }
+            });
+        }
+        
+        // 检查OKR数据
+        console.log('🔧 App - Setting OKRs:');
+        if (fetchedOkrSets && fetchedOkrSets.length > 0) {
+            fetchedOkrSets.forEach(okrSet => {
+                console.log('🔧 App - OKR Set:', {
+                    periodId: okrSet.periodId,
+                    okrCount: okrSet.okrs?.length || 0
+                });
+                okrSet.okrs?.forEach((okr, okrIndex) => {
+                    console.log('🔧 App - OKR:', {
+                        okrIndex: okrIndex + 1,
+                        okrId: okr.id,
+                        objective: okr.objective,
+                        krCount: okr.keyResults?.length || 0
+                    });
+                    okr.keyResults?.forEach((kr, krIndex) => {
+                        console.log('🔧 App - KR:', {
+                            okrIndex: okrIndex + 1,
+                            krIndex: krIndex + 1,
+                            krId: kr.id,
+                            description: kr.description
+                        });
+                    });
+                });
+            });
+        }
+        
         if (fetchedOkrSets.length > 0) {
             if (!currentOkrPeriodId || !(fetchedOkrSets || []).find(s => s.periodId === currentOkrPeriodId)) {
                 const currentPeriod = getCurrentOkrPeriod(fetchedOkrSets);
@@ -272,6 +314,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
 
     // For new projects, just update local state.
     if (projectToUpdate.isNew) {
+        console.log('🔧 App - Updating new project local state:', { projectId, field, value });
         const updatedProject = { ...projectToUpdate, [field]: value };
         setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
         return;
@@ -376,9 +419,16 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     
     // Asynchronously call the API without blocking UI.
     try {
-        console.log('Updating project:', projectId, 'field:', field, 'value:', value);
+        console.log('🔧 App - Updating project via API:', { projectId, field, value });
+        if (field === 'keyResultIds') {
+            console.log('🔧 App - KR update details:', { 
+                oldKRs: projectToUpdate.keyResultIds,
+                newKRs: value,
+                isArray: Array.isArray(value)
+            });
+        }
         await api.updateProject(projectId, updates);
-        console.log('Project update successful');
+        console.log('🔧 App - Project update successful');
         // On success, state is already updated. No full refresh needed.
     } catch (error) {
         console.error("Failed to update project", error);
@@ -479,7 +529,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     setIsLoading(true);
     try {
         const updatedSet = { ...currentSet, okrs: updatedOkrs };
-        await api.updateOkrSet(updatedSet);
+        await api.updateOkrSet(currentOkrPeriodId, updatedSet);
         await fetchData();
     } catch (error) {
         console.error("Failed to update OKR set", error);
@@ -489,11 +539,24 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
   };
 
   const handleCreateNewOkrPeriod = async () => {
-    const latestPeriod = okrSets.sort((a, b) => b.periodId.localeCompare(a.periodId))[0];
-    if (!latestPeriod) {
-        console.error("Cannot create new period without an existing one.");
+    // 筛选正常格式的周期（YYYY-HN格式）并找到最新的
+    const validPeriods = okrSets.filter(set => {
+        return set.periodId && set.periodId.match(/^\d{4}-H[12]$/);
+    });
+    
+    if (validPeriods.length === 0) {
+        console.error("No valid periods found. Cannot create new period.");
+        alert("未找到有效的OKR周期，无法创建新周期。");
         return;
     }
+    
+    // 按年份和半年排序找到最新的周期
+    const latestPeriod = validPeriods.sort((a, b) => {
+        const [yearA, halfA] = a.periodId.split('-H').map(Number);
+        const [yearB, halfB] = b.periodId.split('-H').map(Number);
+        if (yearA !== yearB) return yearB - yearA;
+        return halfB - halfA;
+    })[0];
 
     const [yearStr, halfStr] = latestPeriod.periodId.split('-H');
     const year = parseInt(yearStr, 10);
@@ -509,10 +572,17 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
     
     const nextPeriodId = `${nextYear}-H${nextHalf}`;
     const nextPeriodName = `${nextYear}年${nextHalf === 1 ? '上半年' : '下半年'}`;
+    
+    // 检查新周期是否已存在
+    const existingPeriod = okrSets.find(set => set.periodId === nextPeriodId);
+    if (existingPeriod) {
+        alert(`周期 ${nextPeriodName} 已存在，无法创建重复周期。`);
+        return;
+    }
 
     setIsLoading(true);
     try {
-        const newSet = await api.createOkrSet(nextPeriodId, nextPeriodName);
+        const newSet = await api.createOkrSet({ periodId: nextPeriodId, periodName: nextPeriodName });
         await fetchData();
         setCurrentOkrPeriodId(newSet.periodId);
     } catch(error) {

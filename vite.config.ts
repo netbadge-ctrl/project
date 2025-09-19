@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       },
       preview: {
         host: '0.0.0.0',
-        port: 5174
+        port: 5173  // 使用与配置一致的端口
       },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

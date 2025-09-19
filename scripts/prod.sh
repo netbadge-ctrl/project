@@ -5,7 +5,7 @@
 echo "🚀 启动生产环境..."
 echo "📋 配置信息:"
 echo "  - 环境: production"
-echo "  - 版本: 2.8.0"
+echo "  - 版本: 2.8.5"
 echo "  - OIDC认证: 启用"
 echo "  - API地址: http://120.92.36.175:9000/api"
 echo "  - 认证方式: OIDC单点登录"

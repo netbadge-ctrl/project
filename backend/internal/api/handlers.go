@@ -959,10 +959,10 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 
 	fmt.Printf("OIDC Token Exchange - Starting...\n")
 	fmt.Printf("  URL: %s\n", tokenEndpoint)
-	fmt.Printf("  Code: %s\n", req.Code)
+	fmt.Printf("  Code: %s (length: %d)\n", req.Code, len(req.Code))
 	fmt.Printf("  RedirectURI: %s\n", req.RedirectURI)
 	fmt.Printf("  ClientID: %s\n", clientID)
-	fmt.Printf("  FormData: %s\n", formData)
+	fmt.Printf("  Timestamp: %s\n", time.Now().Format(time.RFC3339))
 
 	tokenReq, err := http.NewRequest("POST", tokenEndpoint, bytes.NewBufferString(formData))
 	if err != nil {
@@ -975,13 +975,13 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 	tokenReq.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: 30 * time.Second}
-	
+
 	fmt.Printf("OIDC Token Exchange - Sending request to %s\n", tokenEndpoint)
 	resp, err := client.Do(tokenReq)
 	if err != nil {
 		fmt.Printf("OIDC Token Exchange - Network error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to exchange token",
+			"error":   "Failed to exchange token",
 			"details": err.Error(),
 		})
 		return
@@ -1002,15 +1002,37 @@ func (h *Handler) OIDCTokenExchange(c *gin.Context) {
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("OIDC Token Exchange - Failed with status %d\n", resp.StatusCode)
-		
+
 		// 尝试解析错误响应
 		var errorResp map[string]interface{}
 		if err := json.Unmarshal(body, &errorResp); err == nil {
 			fmt.Printf("OIDC Token Exchange - Parsed error: %v\n", errorResp)
 		}
-		
+
+		// 特殊处理授权码重复使用的情况
+		var errorMessage string
+		if resp.StatusCode == 400 {
+			if errorResp != nil {
+				if errorType, ok := errorResp["error"].(string); ok {
+					if errorType == "invalid_grant" {
+						errorMessage = "授权码已过期或已被使用，请重新登录"
+					} else {
+						errorMessage = fmt.Sprintf("OIDC错误: %s", errorType)
+					}
+				} else {
+					errorMessage = "授权验证失败，请重新登录"
+				}
+			} else {
+				errorMessage = "授权验证失败，请重新登录"
+			}
+		} else {
+			errorMessage = fmt.Sprintf("OIDC服务错误 (%d)，请稍后重试", resp.StatusCode)
+		}
+
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Token exchange failed with status %d: %s", resp.StatusCode, string(body)),
+			"error":       errorMessage,
+			"details":     string(body),
+			"status_code": resp.StatusCode,
 		})
 		return
 	}
