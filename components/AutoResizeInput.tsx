@@ -11,6 +11,7 @@ interface AutoResizeInputProps {
   onCancel?: () => void;
   onBlur?: () => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  autoFocus?: boolean;
 }
 
 export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
@@ -23,7 +24,8 @@ export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
   onSave,
   onCancel,
   onBlur,
-  onKeyDown
+  onKeyDown,
+  autoFocus = false
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const adjustHeightTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,6 +143,7 @@ export const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
       rows={minRows}
       className={`resize-none auto-resize-input ${className}`}
       style={textareaStyle}
+      autoFocus={autoFocus}
     />
   );
 };

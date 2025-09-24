@@ -158,11 +158,11 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
 
     return (
         <div className="rich-text-input">
-            <div className="flex gap-2 mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border">
+            <div className="flex gap-1 mb-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded border">
                 <button
                     type="button"
                     onMouseDown={(e) => handleCommand(e, 'bold')}
-                    className={`px-3 py-1 rounded text-sm font-bold transition-colors ${
+                    className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${
                         isBoldActive 
                             ? 'bg-blue-500 text-white' 
                             : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -173,7 +173,7 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                 <button
                     type="button"
                     onMouseDown={(e) => handleCommand(e, 'foreColor')}
-                    className={`px-3 py-1 rounded text-sm font-bold transition-colors ${
+                    className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${
                         isRedActive 
                             ? 'bg-red-500 text-white' 
                             : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -194,7 +194,7 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                     w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md
                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-                    resize-none overflow-hidden
+                    resize-none overflow-hidden text-sm
                     ${className}
                 `}
                 style={{

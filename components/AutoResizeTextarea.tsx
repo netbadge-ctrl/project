@@ -9,6 +9,9 @@ interface AutoResizeTextareaProps {
   maxRows?: number;
   onSave?: () => void;
   onCancel?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  onBlur?: () => void;
+  autoFocus?: boolean;
 }
 
 export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
@@ -19,7 +22,10 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   minRows = 1,
   maxRows = 10,
   onSave,
-  onCancel
+  onCancel,
+  onKeyDown,
+  onBlur,
+  autoFocus = false
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [rows, setRows] = useState(minRows);
@@ -85,11 +91,14 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       e.preventDefault();
       onCancel?.();
     }
-  }, [onSave, onCancel]);
+    // 调用外部的onKeyDown处理器
+    onKeyDown?.(e);
+  }, [onSave, onCancel, onKeyDown]);
 
   const handleBlur = useCallback(() => {
+    onBlur?.();
     onSave?.();
-  }, [onSave]);
+  }, [onBlur, onSave]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
@@ -119,6 +128,7 @@ export const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       rows={rows}
       className={`resize-none auto-resize-textarea ${className}`}
       style={textareaStyle}
+      autoFocus={autoFocus}
     />
   );
 };

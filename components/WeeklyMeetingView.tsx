@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Project, User, ProjectStatus, Priority, OKR } from '../types';
 import { WeeklyMeetingProjectCard } from './WeeklyMeetingProjectCard';
 import { WeeklyMeetingFilterBar } from './WeeklyMeetingFilterBar';
@@ -9,9 +10,10 @@ interface WeeklyMeetingViewProps {
     allUsers: User[];
     activeOkrs: OKR[];
     onOpenModal: (type: 'comments', projectId: string, details?: any) => void;
+    onUpdateProject?: (projectId: string, field: keyof Project, value: any) => void;
 }
 
-export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, allUsers, activeOkrs, onOpenModal }) => {
+export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, allUsers, activeOkrs, onOpenModal, onUpdateProject }) => {
     // 使用新的状态管理系统
     const { state, updateWeeklyMeetingFilters } = useFilterState();
     const filters = state.weeklyMeeting;
@@ -170,6 +172,7 @@ export const WeeklyMeetingView: React.FC<WeeklyMeetingViewProps> = ({ projects, 
                                 allUsers={allUsers}
                                 activeOkrs={activeOkrs}
                                 onOpenCommentModal={() => onOpenModal('comments', project.id)}
+                                onUpdateProject={onUpdateProject}
                             />
                         ))}
                     </div>

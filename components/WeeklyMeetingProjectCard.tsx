@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Project, User, Priority, ProjectStatus, OKR, Role, ProjectRoleKey } from '../types';
 import { IconMessageCircle } from './Icons';
+import { RichTextInput } from './RichTextInput';
 
 // 全局弹窗管理
 const tooltipRegistry = new Map<string, () => void>();
@@ -200,67 +201,31 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
             {roleInfo.map(({ key, name }) => {
               const team = project[key] as Role;
               return (
-                <div key={key} className="flex justify-between items-start py-2 first:pt-0 last:pb-0">
-                  <h5 className="font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0 pr-4">{name}</h5>
-                  <div className="text-right">
-                    {(team || []).length === 0 ? (
-                      <span className="text-gray-400 dark:text-gray-500 italic text-xs">暂无</span>
-                    ) : (
-                      <ul className="space-y-1">
-                        {(team || []).map(member => {
-                          const user = allUsers.find(u => u.id === member.userId);
-                          // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
-                          let scheduleText;
-                          if (member.timeSlots && member.timeSlots.length > 0) {
-                            // 显示第一个 timeSlot 的时间段
-                            const slot = member.timeSlots[0];
-                            if (slot.startDate && slot.endDate) {
-                              const startDateObj = new Date(slot.startDate);
-                              const endDateObj = new Date(slot.endDate);
-                              if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
-                                const startDate = startDateObj.toLocaleDateString('zh-CN', {
-                                  month: '2-digit',
-                                  day: '2-digit'
-                                }).replace(/\//g, '.');
-                                const endDate = endDateObj.toLocaleDateString('zh-CN', {
-                                  month: '2-digit',
-                                  day: '2-digit'
-                                }).replace(/\//g, '.');
-                                scheduleText = `${startDate} - ${endDate}`;
-                              } else {
-                                scheduleText = '无排期';
-                              }
-                            } else {
-                              scheduleText = '无排期';
-                            }
-                          } else if (member.startDate && member.endDate) {
-                            const startDateObj = new Date(member.startDate);
-                            const endDateObj = new Date(member.endDate);
-                            if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
-                              scheduleText = `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
-                            } else {
-                              scheduleText = '无排期';
-                            }
-                          } else if (member.startDate) {
-                            const startDateObj = new Date(member.startDate);
-                            if (!isNaN(startDateObj.getTime())) {
-                              scheduleText = `${member.startDate.replace(/-/g, '.')} 开始`;
-                            } else {
-                              scheduleText = '无排期';
-                            }
-                          } else {
-                            scheduleText = '无排期';
-                          }
-                          
-                          return (
-                            <li key={member.userId} className="text-xs">
-                              <div className="text-gray-700 dark:text-gray-200">{user?.name}</div>
-                              <div className="text-gray-500 dark:text-gray-400 font-mono">{scheduleText}</div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
+                <div key={key} className="py-2 first:pt-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <span className="font-medium text-gray-700 dark:text-gray-300 w-12 flex-shrink-0">{name}:</span>
+                    <div className="flex-1 text-right">
+                      {team && team.length > 0 ? (
+                        <div className="space-y-1">
+                          {team.map((member, idx) => {
+                            const user = allUsers.find(u => u.id === member.userId);
+                            const userName = user ? user.name : '未知用户';
+                            return (
+                              <div key={`${member.userId}-${idx}`} className="text-gray-600 dark:text-gray-400">
+                                <span className="font-medium">{userName}</span>
+                                {member.startDate && member.endDate && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                                    {member.startDate.split('T')[0]} ~ {member.endDate.split('T')[0]}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 italic text-xs">无</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -277,10 +242,19 @@ interface WeeklyMeetingProjectCardProps {
     allUsers: User[];
     activeOkrs: OKR[];
     onOpenCommentModal: () => void;
+    onUpdateProject?: (projectId: string, field: keyof Project, value: any) => void;
 }
 
-const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> = ({html, title, projectId}) => {
+const EditableUpdateDisplay: React.FC<{
+    html: string;
+    title: string;
+    projectId: string;
+    onUpdateProject?: (projectId: string, field: keyof Project, value: any) => void;
+    isEditable?: boolean;
+}> = ({ html, title, projectId, onUpdateProject, isEditable = false }) => {
     const [showTooltip, setShowTooltip] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editHtml, setEditHtml] = useState(html);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const tooltipId = React.useRef(`update-${projectId}-${title}-${Date.now()}-${Math.random()}`);
     const content = html || '<p class="text-gray-400 dark:text-gray-500 italic">无</p>';
@@ -291,6 +265,7 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
     
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        // 只有点击内容区域才显示tooltip，不进入编辑模式
         if (!showTooltip) {
             globalTooltipController.closeOthers(tooltipId.current);
         }
@@ -300,6 +275,26 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
             y: e.clientY + window.scrollY 
         });
     };
+    
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isEditable && !isEditing) {
+            setIsEditing(true);
+            setEditHtml(html);
+        }
+    };
+    
+    const handleSave = useCallback(() => {
+        if (onUpdateProject && editHtml !== html) {
+            onUpdateProject(projectId, 'weeklyUpdate', editHtml);
+        }
+        setIsEditing(false);
+    }, [onUpdateProject, projectId, editHtml, html]);
+    
+    const handleCancel = useCallback(() => {
+        setEditHtml(html);
+        setIsEditing(false);
+    }, [html]);
     
     const handleClickOutside = (e: MouseEvent) => {
         const target = e.target as Element;
@@ -325,9 +320,49 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
         }
     }, [showTooltip]);
     
+    if (isEditing) {
+        return (
+            <div className="relative update-tooltip-container">
+                <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
+                <div className="border border-blue-400 rounded-lg p-2 bg-blue-50 dark:bg-blue-900/20">
+                    <RichTextInput
+                        html={editHtml}
+                        onChange={setEditHtml}
+                        placeholder="输入本周进展/问题..."
+                        className="min-h-[120px] max-h-[200px] overflow-y-auto"
+                    />
+                    <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
+                        <button
+                            onClick={handleCancel}
+                            className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                        >
+                            取消
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                            保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
     return (
         <div className="relative update-tooltip-container">
-            <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
+            <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {title}
+                {isEditable && (
+                    <span 
+                        className="ml-2 text-xs text-blue-500 dark:text-blue-400 cursor-pointer hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                        onClick={handleEditClick}
+                    >
+                        (点击编辑)
+                    </span>
+                )}
+            </h4>
             <div
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[5rem] max-h-[7.5rem] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed line-clamp-5"
                 dangerouslySetInnerHTML={{ __html: content }}
@@ -358,7 +393,6 @@ const UpdateDisplay: React.FC<{html: string, title: string, projectId: string}> 
         </div>
     );
 };
-
 
 const BusinessProblemDisplay: React.FC<{businessProblem: string, projectId: string}> = ({businessProblem, projectId}) => {
     const [showTooltip, setShowTooltip] = useState(false);
@@ -431,7 +465,7 @@ const BusinessProblemDisplay: React.FC<{businessProblem: string, projectId: stri
     );
 };
 
-export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> = ({ project, allUsers, activeOkrs, onOpenCommentModal }) => {
+export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> = ({ project, allUsers, activeOkrs, onOpenCommentModal, onUpdateProject }) => {
     const projectOkrs = activeOkrs.filter(okr => 
         okr.keyResults.some(kr => (project.keyResultIds || []).includes(kr.id))
     );
@@ -476,10 +510,21 @@ export const WeeklyMeetingProjectCard: React.FC<WeeklyMeetingProjectCardProps> =
                 {/* Updates Section - 改为上下布局，本周在上 */}
                 <div className="space-y-4 flex-grow">
                     <div>
-                        <UpdateDisplay title="本周进展/问题" html={project.weeklyUpdate} projectId={project.id} />
+                        <EditableUpdateDisplay 
+                            title="本周进展/问题" 
+                            html={project.weeklyUpdate} 
+                            projectId={project.id} 
+                            onUpdateProject={onUpdateProject}
+                            isEditable={!!onUpdateProject}
+                        />
                     </div>
                     <div>
-                        <UpdateDisplay title="上周进展/问题" html={project.lastWeekUpdate} projectId={project.id} />
+                        <EditableUpdateDisplay 
+                            title="上周进展/问题" 
+                            html={project.lastWeekUpdate} 
+                            projectId={project.id}
+                            isEditable={false}
+                        />
                     </div>
                 </div>
             </div>

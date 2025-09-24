@@ -654,7 +654,17 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
           onCreateNewPeriod={handleCreateNewOkrPeriod}
         />;
       case 'kanban':
-        return <KanbanView projects={projects} allUsers={allUsers} activeOkrs={activeOkrs} />;
+        return (
+          <KanbanView 
+            projects={projects} 
+            allUsers={allUsers} 
+            activeOkrs={activeOkrs} 
+            onUpdateProject={handleUpdateProject}
+            onOpenRoleModal={(roleKey, roleName) => handleOpenModal('role', '', { roleKey, roleName })}
+            onToggleFollow={handleToggleFollow}
+            currentUser={currentUser}
+          />
+        );
       case 'weekly':
         return (
             <WeeklyMeetingView
@@ -662,6 +672,7 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
                 allUsers={allUsers}
                 activeOkrs={activeOkrs}
                 onOpenModal={handleOpenModal}
+                onUpdateProject={handleUpdateProject}
             />
         );
 

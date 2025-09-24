@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { Project, User, OKR } from '../types';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { Project, User, OKR, ProjectRoleKey } from '../types';
 import { KanbanFilterBar } from './KanbanFilterBar';
 import { KanbanTimelineControls } from './KanbanTimelineControls';
+import { ProjectDetailModal } from './ProjectDetailModal';
 import { useFilterState } from '../context/FilterStateContext';
 
 // --- Date Helper Functions ---
@@ -58,6 +59,10 @@ interface KanbanViewProps {
   projects: Project[];
   allUsers: User[];
   activeOkrs: OKR[];
+  onUpdateProject?: (projectId: string, field: keyof Project, value: any) => void;
+  onOpenRoleModal?: (roleKey: ProjectRoleKey, roleName: string) => void;
+  onToggleFollow?: (projectId: string) => void;
+  currentUser?: User;
 }
 
 const projectColors = [
@@ -66,10 +71,31 @@ const projectColors = [
   'bg-lime-500', 'bg-sky-500'
 ];
 
-export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, activeOkrs }) => {
+export const KanbanView: React.FC<KanbanViewProps> = ({ 
+  projects, 
+  allUsers, 
+  activeOkrs, 
+  onUpdateProject, 
+  onOpenRoleModal, 
+  onToggleFollow, 
+  currentUser 
+}) => {
   // 使用新的状态管理系统
   const { state, updateKanbanViewFilters } = useFilterState();
   const filters = state.kanbanView;
+
+  // 项目详情弹窗状态
+  const [detailModalProject, setDetailModalProject] = useState<Project | null>(null);
+
+  // 同步更新弹窗中的项目数据
+  useEffect(() => {
+    if (detailModalProject) {
+      const updatedProject = projects.find(p => p.id === detailModalProject.id);
+      if (updatedProject && JSON.stringify(updatedProject) !== JSON.stringify(detailModalProject)) {
+        setDetailModalProject(updatedProject);
+      }
+    }
+  }, [projects, detailModalProject]);
 
   // 本地状态处理函数
   const setSelectedUserIds = (value: string[]) => updateKanbanViewFilters({ selectedUserIds: value });
@@ -79,6 +105,16 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
   const setSelectedPriorities = (value: string[]) => updateKanbanViewFilters({ selectedPriorities: value });
   const setGranularity = (value: 'week' | 'month') => updateKanbanViewFilters({ granularity: value });
   const setViewDate = (value: Date) => updateKanbanViewFilters({ viewDate: value.toISOString() });
+
+  // 点击甘特图项目的处理函数
+  const handleProjectClick = useCallback((project: Project) => {
+    setDetailModalProject(project);
+  }, []);
+
+  // 关闭项目详情弹窗
+  const handleCloseModal = useCallback(() => {
+    setDetailModalProject(null);
+  }, []);
 
   // 从状态中获取当前值
   const selectedUserIds = filters.selectedUserIds;
@@ -97,7 +133,9 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
 
     if (granularity === 'month') {
         const numMonths = 3;
-        startDate = getStartOfMonth(viewDate);
+        // 确保从当前日期所在的月份开始
+        const today = new Date();
+        startDate = getStartOfMonth(today);
         endDate = addDays(addMonths(startDate, numMonths), -1);
 
         const monthHeaders: Date[] = [];
@@ -136,7 +174,9 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
         rangeLabel = `${startDate.getFullYear()}年${startDate.getMonth() + 1}月 - ${endMonth.getFullYear()}年${endMonth.getMonth() + 1}月`;
     } else { // week
         const numWeeks = 3;
-        startDate = getStartOfWeek(viewDate);
+        // 确保从当前日期所在的周开始
+        const today = new Date();
+        startDate = getStartOfWeek(today);
         endDate = addDays(addWeeks(startDate, numWeeks), -1);
 
         const formatDate = (d: Date) => `${d.getMonth()+1}月${d.getDate()}日`;
@@ -441,7 +481,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                         return (
                           <div
                             key={`${item.project.id}-${item.lane}-${item.startDate}-${item.endDate}`}
-                            className={`absolute rounded-md ${color} px-2 flex items-center text-xs font-semibold text-white/90 tooltip-container group/item`}
+                            className={`absolute rounded-md ${color} px-2 flex items-center text-xs font-semibold text-white/90 tooltip-container group/item cursor-pointer hover:opacity-90 transition-opacity`}
                             style={{
                               left: `${left}%`,
                               width: `${width > 0 ? width : 0}%`,
@@ -449,6 +489,8 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                               top: `${item.lane * 2.5}rem`,
                               height: '2rem'
                             }}
+                            onClick={() => handleProjectClick(item.project)}
+                            title="点击查看项目详情"
                           >
                             <span className="truncate">
                               {item.project.name} ({item.role})
@@ -458,6 +500,8 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
                               {item.project.name}: {item.startDate.split('T')[0]} ~ {item.endDate.split('T')[0]}
                               {item.description && <br />}
                               {item.description && <span className="text-gray-300">{item.description}</span>}
+                              <br />
+                              <span className="text-blue-300">点击查看详情</span>
                             </div>
                           </div>
                         )
@@ -470,6 +514,20 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ projects, allUsers, acti
           </div>
         </div>
       </div>
+      
+      {/* 项目详情弹窗 */}
+      {detailModalProject && currentUser && onUpdateProject && onOpenRoleModal && onToggleFollow && (
+        <ProjectDetailModal
+          project={detailModalProject}
+          allUsers={allUsers}
+          activeOkrs={activeOkrs}
+          currentUser={currentUser}
+          onClose={handleCloseModal}
+          onUpdateProject={onUpdateProject}
+          onOpenRoleModal={onOpenRoleModal}
+          onToggleFollow={onToggleFollow}
+        />
+      )}
     </main>
   );
 };

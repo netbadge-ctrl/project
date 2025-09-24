@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { IconChevronDown, IconSearch } from './Icons';
 import { fuzzySearch } from '../utils';
 
@@ -36,6 +37,45 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 320 });
+    const dropdownContentRef = useRef<HTMLDivElement>(null);
+    
+    // 计算下拉菜单位置
+    const calculatePosition = useCallback(() => {
+        if (!dropdownRef.current) return;
+        
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const dropdownHeight = 400; // 下拉菜单预估高度
+        const dropdownWidth = 320; // 下拉菜单宽度
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const margin = 8;
+        
+        let top = rect.bottom + margin;
+        let left = rect.left;
+        
+        // 检查下方空间是否足够
+        if (top + dropdownHeight > viewportHeight) {
+            // 向上展开
+            top = rect.top - dropdownHeight - margin;
+            // 如果上方空间也不够，则置于屏幕中央
+            if (top < margin) {
+                top = Math.max(margin, (viewportHeight - dropdownHeight) / 2);
+            }
+        }
+        
+        // 检查右侧空间是否足够
+        if (left + dropdownWidth > viewportWidth) {
+            left = viewportWidth - dropdownWidth - margin;
+        }
+        
+        // 确保不超出左边界
+        if (left < margin) {
+            left = margin;
+        }
+        
+        setDropdownPosition({ top, left, width: dropdownWidth });
+    }, []);
     
     // 预缓存选项数据，避免每次搜索时重复处理
     const processedOptions = useMemo(() => {
@@ -55,15 +95,23 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            // 检查点击是否在触发按钮或下拉菜单内容内
+            const isClickInTrigger = dropdownRef.current?.contains(target);
+            const isClickInDropdown = dropdownContentRef.current?.contains(target);
+            
+            if (!isClickInTrigger && !isClickInDropdown) {
                 setIsOpen(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+        
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [isOpen]);
 
     // 完全移除防抖，直接使用搜索词
     useEffect(() => {
@@ -74,9 +122,26 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         if (isOpen) {
             setSearchTerm('');
             setDebouncedSearchTerm('');
+            calculatePosition();
             setTimeout(() => searchInputRef.current?.focus(), 100);
         }
-    }, [isOpen]);
+    }, [isOpen, calculatePosition]);
+
+    // 监听窗口变化重新计算位置
+    useEffect(() => {
+        if (isOpen) {
+            const handleResize = () => calculatePosition();
+            const handleScroll = () => calculatePosition();
+            
+            window.addEventListener('resize', handleResize);
+            window.addEventListener('scroll', handleScroll, true);
+            
+            return () => {
+                window.removeEventListener('resize', handleResize);
+                window.removeEventListener('scroll', handleScroll, true);
+            };
+        }
+    }, [isOpen, calculatePosition]);
 
     const handleToggleOption = useCallback((value: string) => {
         const newSelectedValues = selectedValues.includes(value)
@@ -210,6 +275,92 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 
     const isActive = selectedValues.length > 0;
 
+    // 下拉菜单内容
+    const dropdownContent = isOpen ? (
+        <div 
+            ref={dropdownContentRef}
+            style={{
+                position: 'fixed',
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`,
+                width: `${dropdownPosition.width}px`,
+                zIndex: 999999,
+            }}
+            className="bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-xl shadow-2xl flex flex-col max-h-[70vh] min-h-[200px]"
+        >
+            {/* 搜索区域 */}
+            <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#232323] rounded-t-xl">
+                <div className="relative">
+                   <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                   <input
+                     ref={searchInputRef}
+                     type="text"
+                     placeholder="搜索选项..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="bg-white dark:bg-[#2d2d2d] border border-gray-300 dark:border-[#4a4a4a] rounded-lg pl-10 pr-4 py-2.5 w-full text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-[#6C63FF] transition-all"
+                   />
+                </div>
+            </div>
+            
+            {/* 全选/取消全选按钮 */}
+            {flatFilteredOptions.length > 0 && (
+                <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#232323]">
+                    <button
+                        onClick={handleToggleAll}
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-[#6C63FF] rounded-lg hover:bg-[#5a52d9] focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:ring-offset-2 transition-all duration-200 shadow-sm"
+                    >
+                        {areAllFilteredSelected ? '取消全选' : '全部选择'}
+                    </button>
+                </div>
+            )}
+            
+            {/* 选项列表区域 - 自适应高度 */}
+            <div className="flex-grow overflow-hidden flex flex-col">
+                <ul className="flex-grow overflow-y-auto p-2 space-y-1" style={{ maxHeight: 'calc(70vh - 140px)' }}>
+                    {filteredGroupedOptions ? (
+                        filteredGroupedOptions.map(group => (
+                            <li key={group.label} className="mb-3">
+                                <div className="sticky top-0 bg-white dark:bg-[#2d2d2d] px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3a3a] mb-2">
+                                    {group.label}
+                                </div>
+                                <ul className="space-y-1">
+                                    {group.options.map(renderOption)}
+                                </ul>
+                            </li>
+                        ))
+                    ) : (
+                        flatFilteredOptions.map(renderOption)
+                    )}
+                    
+                    {flatFilteredOptions.length === 0 && (
+                        <li className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                            <div className="w-12 h-12 bg-gray-100 dark:bg-[#3a3a3a] rounded-full flex items-center justify-center mb-3">
+                                <IconSearch className="w-6 h-6" />
+                            </div>
+                            <p className="text-sm font-medium">无匹配选项</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">尝试调整搜索条件</p>
+                        </li>
+                    )}
+                </ul>
+                
+                {/* 滚动提示 */}
+                {flatFilteredOptions.length > 8 && (
+                    <div className="flex-shrink-0 px-3 py-2 bg-gradient-to-t from-white dark:from-[#2d2d2d] to-transparent">
+                        <div className="flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
+                            <span>滚动查看更多选项</span>
+                            <div className="ml-2 flex space-x-1">
+                                <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    ) : null;
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -235,80 +386,9 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#6C63FF]"></div>
                 )}
             </button>
-            {isOpen && (
-                <div className="absolute top-full mt-2 w-80 bg-white dark:bg-[#2d2d2d] border border-gray-200 dark:border-[#4a4a4a] rounded-xl shadow-2xl z-[9999] flex flex-col max-h-[70vh] min-h-[200px] left-0">
-                    {/* 搜索区域 */}
-                    <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#232323] rounded-t-xl">
-                        <div className="relative">
-                           <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                           <input
-                             ref={searchInputRef}
-                             type="text"
-                             placeholder="搜索选项..."
-                             value={searchTerm}
-                             onChange={(e) => setSearchTerm(e.target.value)}
-                             className="bg-white dark:bg-[#2d2d2d] border border-gray-300 dark:border-[#4a4a4a] rounded-lg pl-10 pr-4 py-2.5 w-full text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:border-[#6C63FF] transition-all"
-                           />
-                        </div>
-                    </div>
-                    
-                    {/* 全选/取消全选按钮 */}
-                    {flatFilteredOptions.length > 0 && (
-                        <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-[#4a4a4a] bg-gray-50 dark:bg-[#232323]">
-                            <button
-                                onClick={handleToggleAll}
-                                className="w-full px-4 py-2 text-sm font-medium text-white bg-[#6C63FF] rounded-lg hover:bg-[#5a52d9] focus:outline-none focus:ring-2 focus:ring-[#6C63FF] focus:ring-offset-2 transition-all duration-200 shadow-sm"
-                            >
-                                {areAllFilteredSelected ? '取消全选' : '全部选择'}
-                            </button>
-                        </div>
-                    )}
-                    
-                    {/* 选项列表区域 - 自适应高度 */}
-                    <div className="flex-grow overflow-hidden flex flex-col">
-                        <ul className="flex-grow overflow-y-auto p-2 space-y-1" style={{ maxHeight: 'calc(70vh - 140px)' }}>
-                            {filteredGroupedOptions ? (
-                                filteredGroupedOptions.map(group => (
-                                    <li key={group.label} className="mb-3">
-                                        <div className="sticky top-0 bg-white dark:bg-[#2d2d2d] px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3a3a] mb-2">
-                                            {group.label}
-                                        </div>
-                                        <ul className="space-y-1">
-                                            {group.options.map(renderOption)}
-                                        </ul>
-                                    </li>
-                                ))
-                            ) : (
-                                flatFilteredOptions.map(renderOption)
-                            )}
-                            
-                            {flatFilteredOptions.length === 0 && (
-                                <li className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-                                    <div className="w-12 h-12 bg-gray-100 dark:bg-[#3a3a3a] rounded-full flex items-center justify-center mb-3">
-                                        <IconSearch className="w-6 h-6" />
-                                    </div>
-                                    <p className="text-sm font-medium">无匹配选项</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">尝试调整搜索条件</p>
-                                </li>
-                            )}
-                        </ul>
-                        
-                        {/* 滚动提示 */}
-                        {flatFilteredOptions.length > 8 && (
-                            <div className="flex-shrink-0 px-3 py-2 bg-gradient-to-t from-white dark:from-[#2d2d2d] to-transparent">
-                                <div className="flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
-                                    <span>滚动查看更多选项</span>
-                                    <div className="ml-2 flex space-x-1">
-                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></div>
-                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            
+            {/* 使用 Portal 渲染到 document.body，避免 z-index 冲突和布局问题 */}
+            {dropdownContent && ReactDOM.createPortal(dropdownContent, document.body)}
         </div>
     );
 };

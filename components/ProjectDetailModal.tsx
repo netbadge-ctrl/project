@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Project, User, OKR, ProjectRoleKey, Priority, ProjectStatus, Role } from '../types';
 import { IconX, IconStar, IconPencil, IconChevronDown } from './Icons';
 import { RichTextInput } from './RichTextInput';
+import { AutoResizeInput } from './AutoResizeInput';
+import { AutoResizeTextarea } from './AutoResizeTextarea';
 
 const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
     const priorityStyles: Record<Priority, string> = {
@@ -107,6 +109,85 @@ const InfoBlock: React.FC<{ label: string, children: React.ReactNode }> = ({ lab
     </div>
 );
 
+const EditableText: React.FC<{
+    value: string;
+    onSave: (value: string) => void;
+    className?: string;
+    placeholder?: string;
+    multiline?: boolean;
+}> = ({ value, onSave, className = '', placeholder = '', multiline = false }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(value);
+
+    const handleEdit = () => {
+        setEditValue(value);
+        setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        if (editValue.trim() !== value.trim()) {
+            onSave(editValue.trim());
+        }
+        setIsEditing(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !multiline) {
+            e.preventDefault();
+            handleBlur();
+        } else if (e.key === 'Escape') {
+            setEditValue(value);
+            setIsEditing(false);
+        }
+    };
+
+    const handleChange = (newValue: string) => {
+        setEditValue(newValue);
+    };
+
+    if (isEditing) {
+        return (
+            <div className="w-full">
+                {multiline ? (
+                    <AutoResizeTextarea
+                        value={editValue}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
+                        onBlur={handleBlur}
+                        placeholder={placeholder}
+                        className={`w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${className}`}
+                        autoFocus
+                    />
+                ) : (
+                    <AutoResizeInput
+                        value={editValue}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
+                        onBlur={handleBlur}
+                        placeholder={placeholder}
+                        className={`w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
+                        autoFocus
+                    />
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div 
+            onClick={handleEdit}
+            className={`group cursor-pointer rounded p-2 -m-2 hover:bg-gray-50 dark:hover:bg-[#2d2d2d] transition-colors ${className}`}
+        >
+            <div className="flex items-start justify-between">
+                <span className={`${multiline ? 'whitespace-pre-wrap' : ''} ${!value.trim() ? 'text-gray-400 dark:text-gray-500 italic' : ''}`}>
+                    {value.trim() || placeholder}
+                </span>
+                <IconPencil className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity ml-2 mt-0.5 flex-shrink-0" />
+            </div>
+        </div>
+    );
+};
+
 interface ProjectDetailModalProps {
     project: Project;
     allUsers: User[];
@@ -134,6 +215,18 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         onUpdateProject(project.id, 'status', newStatus);
     };
 
+    const handleProjectNameSave = (newName: string) => {
+        if (newName.trim() !== project.name.trim()) {
+            onUpdateProject(project.id, 'name', newName.trim());
+        }
+    };
+
+    const handleBusinessProblemSave = (newBusinessProblem: string) => {
+        if (newBusinessProblem.trim() !== (project.businessProblem || '').trim()) {
+            onUpdateProject(project.id, 'businessProblem', newBusinessProblem.trim());
+        }
+    };
+
     const roleInfo: { key: ProjectRoleKey, name: string }[] = [
         { key: 'productManagers', name: '产品经理' },
         { key: 'backendDevelopers', name: '后端研发' },
@@ -152,7 +245,14 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             <div className="bg-white dark:bg-[#232323] border border-gray-200 dark:border-[#363636] rounded-xl w-full max-w-6xl text-gray-900 dark:text-white shadow-lg flex flex-col max-h-[95vh]">
                 {/* Header */}
                 <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#363636]">
-                    <h2 id="modal-title" className="text-xl font-bold truncate pr-4">{project.name}</h2>
+                    <div className="flex-1 mr-4">
+                        <EditableText
+                            value={project.name}
+                            onSave={handleProjectNameSave}
+                            placeholder="输入项目名称..."
+                            className="text-xl font-bold"
+                        />
+                    </div>
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={() => onToggleFollow(project.id)}
@@ -176,7 +276,12 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                     {/* Left Column (Info) */}
                     <div className="md:col-span-1 space-y-6">
                         <InfoBlock label="解决的业务问题">
-                            <p className="whitespace-pre-wrap">{project.businessProblem || '暂无描述'}</p>
+                            <EditableText
+                                value={project.businessProblem || ''}
+                                onSave={handleBusinessProblemSave}
+                                placeholder="输入项目要解决的业务问题..."
+                                multiline
+                            />
                         </InfoBlock>
                         <div className="grid grid-cols-2 gap-4">
                             <InfoBlock label="优先级"><PriorityBadge priority={project.priority} /></InfoBlock>

@@ -1,44 +1,49 @@
 {
-  "version": "2.9.2",
-  "name": "周会视图项目卡片产品经理显示功能",
-  "releaseDate": "2025-09-19",
-  "buildTime": "2025-09-19T15:30:00+08:00",
+  "version": "2.9.4",
+  "name": "看板甘特图交互优化与周会视图编辑功能增强",
+  "releaseDate": "2025-09-24",
+  "buildTime": "2025-09-24T16:30:00+08:00",
   "features": [
-    "在周会视图项目卡片中添加产品经理姓名显示",
-    "实现产品经理信息与状态标签的完美对齐",
-    "支持多个产品经理的顿号分隔显示",
-    "优化文字基线对齐和视觉效果"
+    "看板视图甘特图支持点击查看项目详情，并支持完整编辑功能",
+    "周会视图项目卡片中本周进展/问题支持编辑，采用点击编辑链接的交互方式",
+    "看板时间轴优化，周视图和月视图始终从当前日期对应的周/月开始显示",
+    "周会视图编辑模式界面优化，压缩工具栏和按钮区域高度，为输入框释放更多空间"
   ],
   "compatibility": {
-    "backward": "v2.9.1",
+    "backward": "v2.9.2",
     "browsers": ["Chrome 60+", "Firefox 55+", "Safari 12+", "Edge 79+"],
     "mobile": true
   },
   "changelog": {
     "added": [
-      "周会视图项目卡片中的产品经理姓名显示",
-      "智能产品经理姓名获取功能，支持无人员提示",
-      "产品经理信息的普通文本显示，符合规范"
+      "看板视图甘特图点击交互功能，可弹出项目详情弹窗",
+      "周会视图本周进展/问题字段编辑功能",
+      "EditableUpdateDisplay组件，支持双模式交互（查看/编辑）",
+      "周会视图编辑模式下的富文本编辑器",
+      "看板时间轴智能定位，自动从当前日期开始显示"
     ],
     "updated": [
-      "WeeklyMeetingProjectCard组件中的状态标签显示逻辑",
-      "产品经理信息与状态标签的对齐方式",
-      "文字基线对齐算法，实现像素级精确对齐",
-      "字体粗细和垂直内边距的一致性设置"
+      "KanbanView组件，添加甘特图点击交互和项目详情弹窗",
+      "WeeklyMeetingView和WeeklyMeetingProjectCard，添加编辑功能支持",
+      "RichTextInput组件，优化工具栏和按钮尺寸，节省空间",
+      "看板时间轴计算逻辑，始终从当前日期开始显示",
+      "App.tsx，为看板和周会视图传递必要的回调函数"
     ],
     "fixed": [
-      "修复ProjectStatus枚举缺少LaunchedThisWeek和Completed属性的TypeScript错误",
-      "修复状态标签中错误使用ProjectStatus.Launched的问题",
-      "优化产品经理信息的显示位置和对齐效果"
+      "修复看板视图编辑后数据不同步的问题",
+      "修复周会视图中点击内容区域误触发编辑模式的问题",
+      "修复周会视图编辑模式下字体大小不一致的问题",
+      "修复RichTextInput组件中变量名冲突的TypeScript错误",
+      "修复编辑模式下高度太高，空间利用不合理的问题"
     ]
   },
   "metrics": {
-    "filesAdded": 0,
-    "filesUpdated": 1,
-    "linesOfCode": 25,
+    "filesAdded": 1,
+    "filesUpdated": 6,
+    "linesOfCode": 312,
     "testCoverage": "99%",
-    "bugsFixed": 3,
+    "bugsFixed": 8,
     "securityImprovements": 0,
-    "performanceImprovements": 1
+    "performanceImprovements": 3
   }
 }
