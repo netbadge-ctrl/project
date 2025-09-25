@@ -367,6 +367,11 @@ const EditableUpdateDisplay: React.FC<{
                 className="p-3 bg-gray-50 dark:bg-[#2a2a2a] rounded-lg min-h-[5rem] max-h-[7.5rem] overflow-hidden text-sm text-gray-800 dark:text-gray-300 weekly-update-content cursor-pointer leading-relaxed line-clamp-5"
                 dangerouslySetInnerHTML={{ __html: content }}
                 onClick={handleClick}
+                style={{
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere'
+                }}
             />
             
             {showTooltip && (
@@ -378,6 +383,11 @@ const EditableUpdateDisplay: React.FC<{
                     <div
                         className="text-sm text-gray-800 dark:text-gray-300 weekly-update-content whitespace-pre-wrap"
                         dangerouslySetInnerHTML={{ __html: content }}
+                        style={{
+                            wordWrap: 'break-word',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere'
+                        }}
                     />
                 </div>
             )}
@@ -389,6 +399,18 @@ const EditableUpdateDisplay: React.FC<{
               .weekly-update-content p { margin-bottom: 0.5rem; }
               .weekly-update-content br { display: block; margin: 0.25rem 0; }
               .weekly-update-content div { margin-bottom: 0.5rem; }
+              .weekly-update-content {
+                word-wrap: break-word;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                white-space: pre-wrap;
+              }
+              .weekly-update-content * {
+                word-wrap: break-word;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 100%;
+              }
             `}</style>
         </div>
     );

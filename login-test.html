@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT 认证测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .danger {
+            background-color: #dc3545;
+        }
+        .danger:hover {
+            background-color: #c82333;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 JWT 认证系统测试</h1>
+        
+        <!-- 登录表单 -->
+        <div id="loginForm">
+            <h3>1. 模拟登录获取JWT Token</h3>
+            <div class="form-group">
+                <label for="userId">用户ID:</label>
+                <input type="text" id="userId" value="test_user_001" placeholder="输入用户ID">
+            </div>
+            <div class="form-group">
+                <label for="userEmail">邮箱:</label>
+                <input type="email" id="userEmail" value="test@company.com" placeholder="输入邮箱">
+            </div>
+            <div class="form-group">
+                <label for="userName">姓名:</label>
+                <input type="text" id="userName" value="测试用户" placeholder="输入姓名">
+            </div>
+            <button onclick="loginWithJWT()">获取JWT Token</button>
+        </div>
+
+        <!-- Token 显示区域 -->
+        <div id="tokenArea" class="hidden">
+            <h3>2. JWT Token</h3>
+            <textarea id="jwtToken" rows="3" readonly placeholder="JWT Token将在这里显示"></textarea>
+            <br><br>
+            <button onclick="testProtectedAPI()">测试受保护的API (/api/projects)</button>
+            <button onclick="testUsersAPI()">测试用户API (/api/users)</button>
+            <button onclick="testWithoutToken()" class="danger">测试无Token访问（应该失败）</button>
+        </div>
+
+        <!-- 响应显示区域 -->
+        <div id="responseArea"></div>
+    </div>
+
+    <script>
+        let currentToken = '';
+
+        async function loginWithJWT() {
+            const userId = document.getElementById('userId').value;
+            const userEmail = document.getElementById('userEmail').value;
+            const userName = document.getElementById('userName').value;
+
+            if (!userId || !userEmail || !userName) {
+                showResponse('请填写完整的用户信息', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/jwt-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        access_token: 'mock_oidc_token_' + Date.now(),
+                        user_info: {
+                            id: userId,
+                            email: userEmail,
+                            name: userName
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.access_token;
+                    document.getElementById('jwtToken').value = currentToken;
+                    document.getElementById('tokenArea').classList.remove('hidden');
+                    
+                    showResponse(`登录成功！\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResponse(`登录失败：\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`网络错误：${error.message}`, 'error');
+            }
+        }
+
+        async function testProtectedAPI() {
+            if (!currentToken) {
+                showResponse('请先获取JWT Token', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/projects', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const preview = data.length > 2 ? JSON.stringify(data.slice(0, 2), null, 2) + '\n...(更多项目)' : JSON.stringify(data, null, 2);
+                    showResponse(`✅ 项目API访问成功！\n找到 ${data.length} 个项目\n\n${preview}`, 'success');
+                } else {
+                    showResponse(`❌ 项目API访问失败：\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`网络错误：${error.message}`, 'error');
+            }
+        }
+
+        async function testUsersAPI() {
+            if (!currentToken) {
+                showResponse('请先获取JWT Token', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const preview = data.length > 3 ? JSON.stringify(data.slice(0, 3), null, 2) + '\n...(更多用户)' : JSON.stringify(data, null, 2);
+                    showResponse(`✅ 用户API访问成功！\n找到 ${data.length} 个用户\n\n${preview}`, 'success');
+                } else {
+                    showResponse(`❌ 用户API访问失败：\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`网络错误：${error.message}`, 'error');
+            }
+        }
+
+        async function testWithoutToken() {
+            try {
+                const response = await fetch('/api/projects', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    showResponse(`✅ 安全验证正常！无Token访问被正确拒绝：\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResponse(`⚠️ 安全警告！无Token访问竟然成功了：\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`网络错误：${error.message}`, 'error');
+            }
+        }
+
+        function showResponse(message, type) {
+            const responseArea = document.getElementById('responseArea');
+            responseArea.innerHTML = `<div class="response ${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

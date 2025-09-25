@@ -59,20 +59,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (isDevelopment && !appConfig.enableOIDC) {
                 console.log('🔧 Development mode: Using mock authentication');
                 try {
-                    const users = await api.fetchUsers();
-                    const mockUser = users.find(u => u.id === appConfig.mockUserId) || users[0];
-                    
-                    if (mockUser) {
+                    // 开发模式下调用不需要认证的模拟用户端点
+                    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api'}/dev/mock-user`);
+                    if (response.ok) {
+                        const mockUser = await response.json();
                         setUser(mockUser);
                         setIsAuthenticated(true);
-                        console.log('🔧 Mock user loaded:', mockUser.name);
+                        console.log('🔧 Mock user loaded from API:', mockUser.name);
                     } else {
-                        console.error('🔧 No mock user found');
-                        setIsAuthenticated(false);
+                        // 如果 API 调用失败，使用本地模拟数据
+                        const mockUser: User = {
+                            id: appConfig.mockUserId || '22231',
+                            name: '陈楠',
+                            email: 'chennan1@kingsoft.com',
+                            avatarUrl: `https://picsum.photos/seed/22231/40/40`,
+                            deptId: 28508729,
+                            deptName: '前端开发部'
+                        };
+                        setUser(mockUser);
+                        setIsAuthenticated(true);
+                        console.log('🔧 Mock user loaded locally (API unavailable):', mockUser.name);
                     }
                 } catch (error) {
-                    console.error('🔧 Failed to load mock user:', error);
-                    setIsAuthenticated(false);
+                    console.error('🔧 Failed to load mock user from API, using local fallback:', error);
+                    // API 调用失败时的备选方案
+                    const mockUser: User = {
+                        id: appConfig.mockUserId || '22231',
+                        name: '陈楠',
+                        email: 'chennan1@kingsoft.com',
+                        avatarUrl: `https://picsum.photos/seed/22231/40/40`,
+                        deptId: 28508729,
+                        deptName: '前端开发部'
+                    };
+                    setUser(mockUser);
+                    setIsAuthenticated(true);
+                    console.log('🔧 Mock user loaded locally (fallback):', mockUser.name);
                 }
             } else {
                 // 生产模式：使用OIDC认证
@@ -109,7 +130,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 id: dbUser.id, // 使用数据库中的用户ID
                 name: dbUser.name, // 使用数据库中的用户名
                 email: dbUser.email,
-                avatarUrl: dbUser.avatarUrl
+                avatarUrl: dbUser.avatarUrl,
+                deptId: dbUser.deptId,
+                deptName: dbUser.deptName
             };
             
             // 保存到本地存储

@@ -209,6 +209,7 @@ export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (
                     style={displayStyle}
                     className="whitespace-pre-wrap table-cell-content w-full text-sm leading-relaxed rich-text-display break-words"
                     dangerouslySetInnerHTML={{ __html: html }}
+                    data-wordwrap="true"
                 />
                 
                 {needsTruncation && (
@@ -223,6 +224,28 @@ export const RichTextEditableCell = ({ html, onSave }: { html: string, onSave: (
                     </button>
                 )}
             </div>
+            
+            {/* CSS样式来处理文本换行 */}
+            <style>{`
+                .rich-text-display {
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    white-space: pre-wrap;
+                    max-width: 100%;
+                }
+                .rich-text-display * {
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 100%;
+                }
+                .rich-text-display b { font-weight: 600; }
+                .rich-text-display font[color="#ef4444"] { color: #ef4444; }
+                .rich-text-display p { margin-bottom: 0.5rem; }
+                .rich-text-display br { display: block; margin: 0.25rem 0; }
+                .rich-text-display div { margin-bottom: 0.5rem; }
+            `}</style>
         </div>
     );
 };

@@ -2,33 +2,48 @@
 // 使用环境变量，如果未设置则使用本地默认值
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api';
 
+// 检查是否为开发模式
+const isDevelopment = import.meta.env.DEV || import.meta.env.NODE_ENV === 'development';
+
+// 统一的请求处理函数
+const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
+  // 在生产环境中，这里可以添加JWT认证头
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return response.json();
+};
+
 // API 请求封装
 export const api = {
   // 获取用户信息
   async getUser() {
-    const response = await fetch(`${API_BASE_URL}/user`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch user');
-    }
-    return response.json();
+    return makeRequest('/user');
   },
 
   // 获取用户列表
   async fetchUsers() {
-    const response = await fetch(`${API_BASE_URL}/users`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch users');
-    }
-    return response.json();
+    // 开发模式下使用不需要认证的端点
+    const endpoint = isDevelopment ? '/dev/users' : '/users';
+    return makeRequest(endpoint);
   },
 
   // 获取项目列表
   async getProjects() {
-    const response = await fetch(`${API_BASE_URL}/projects`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch projects');
-    }
-    return response.json();
+    // 开发模式下使用不需要认证的端点
+    const endpoint = isDevelopment ? '/dev/projects' : '/projects';
+    return makeRequest(endpoint);
   },
 
   // 获取项目列表（别名）
@@ -38,213 +53,124 @@ export const api = {
 
   // 获取OKR集合
   async fetchOkrSets() {
-    const response = await fetch(`${API_BASE_URL}/okr-sets`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch OKR sets');
-    }
-    return response.json();
+    // 开发模式下使用不需要认证的端点
+    const endpoint = isDevelopment ? '/dev/okr-sets' : '/okr-sets';
+    return makeRequest(endpoint);
   },
 
   // 创建OKR集合
   async createOkrSet(okrSet: any) {
-    const response = await fetch(`${API_BASE_URL}/okr-sets`, {
+    const endpoint = isDevelopment ? '/dev/okr-sets' : '/okr-sets';
+    return makeRequest(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(okrSet),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create OKR set');
-    }
-    return response.json();
   },
 
   // 更新OKR集合
   async updateOkrSet(periodId: string, okrSet: any) {
-    const response = await fetch(`${API_BASE_URL}/okr-sets/${periodId}`, {
+    const endpoint = isDevelopment ? `/dev/okr-sets/${periodId}` : `/okr-sets/${periodId}`;
+    return makeRequest(endpoint, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(okrSet),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update OKR set');
-    }
-    return response.json();
   },
 
   // 执行周度滚动
   async performWeeklyRollover() {
-    const response = await fetch(`${API_BASE_URL}/perform-weekly-rollover`, {
+    const endpoint = isDevelopment ? '/dev/perform-weekly-rollover' : '/perform-weekly-rollover';
+    return makeRequest(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
-    if (!response.ok) {
-      throw new Error('Failed to perform weekly rollover');
-    }
-    return response.json();
   },
 
   // 用户登录
   async login(credentials: any) {
-    const response = await fetch(`${API_BASE_URL}/login`, {
+    return makeRequest('/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(credentials),
     });
-    if (!response.ok) {
-      throw new Error('Failed to login');
-    }
-    return response.json();
   },
 
   // 检查认证状态
   async checkAuth() {
-    const response = await fetch(`${API_BASE_URL}/check-auth`);
-    if (!response.ok) {
-      throw new Error('Failed to check auth');
-    }
-    return response.json();
+    return makeRequest('/check-auth');
   },
 
   // OIDC令牌交换
   async oidcTokenExchange(token: any) {
-    const response = await fetch(`${API_BASE_URL}/oidc-token`, {
+    return makeRequest('/oidc-token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(token),
     });
-    if (!response.ok) {
-      throw new Error('Failed to exchange OIDC token');
-    }
-    return response.json();
   },
 
   // 获取任务列表
   async getTasks() {
-    const response = await fetch(`${API_BASE_URL}/tasks`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch tasks');
-    }
-    return response.json();
+    return makeRequest('/tasks');
   },
 
   // 创建项目
   async createProject(project: any) {
-    const response = await fetch(`${API_BASE_URL}/projects`, {
+    const endpoint = isDevelopment ? '/dev/projects' : '/projects';
+    return makeRequest(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(project),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create project');
-    }
-    return response.json();
   },
 
   // 更新项目
   async updateProject(id: string, project: any) {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const endpoint = isDevelopment ? `/dev/projects/${id}` : `/projects/${id}`;
+    return makeRequest(endpoint, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(project),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update project');
-    }
-    return response.json();
   },
 
   // 删除项目
   async deleteProject(id: string) {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const endpoint = isDevelopment ? `/dev/projects/${id}` : `/projects/${id}`;
+    return makeRequest(endpoint, {
       method: 'DELETE',
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete project');
-    }
-    return response.json();
   },
 
   // 创建任务
   async createTask(task: any) {
-    const response = await fetch(`${API_BASE_URL}/tasks`, {
+    return makeRequest('/tasks', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(task),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create task');
-    }
-    return response.json();
   },
 
   // 更新任务
   async updateTask(id: string, task: any) {
-    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+    return makeRequest(`/tasks/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(task),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update task');
-    }
-    return response.json();
   },
 
   // 删除任务
   async deleteTask(id: string) {
-    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+    return makeRequest(`/tasks/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete task');
-    }
-    return response.json();
   },
 
   // 刷新用户数据
   async refreshUsers() {
-    const response = await fetch(`${API_BASE_URL}/refresh-users`, {
+    return makeRequest('/refresh-users', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
-    if (!response.ok) {
-      throw new Error('Failed to refresh users');
-    }
-    return response.json();
   },
 
   // 同步员工数据
   async syncEmployees() {
-    const response = await fetch(`${API_BASE_URL}/sync-employees`, {
+    return makeRequest('/sync-employees', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
-    if (!response.ok) {
-      throw new Error('Failed to sync employees');
-    }
-    return response.json();
   }
 };
 

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"project-management-backend/internal/middleware"
 	"project-management-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -1113,4 +1114,128 @@ func (h *Handler) syncEmployeeData() error {
 
 	fmt.Printf("Successfully processed %d employees\n", len(employees))
 	return nil
+}
+
+// JWTLogin JWT登录端点，集成OIDC验证并生成JWT token
+func (h *Handler) JWTLogin(c *gin.Context) {
+	var req struct {
+		AccessToken string `json:"access_token" binding:"required"`
+		UserInfo    struct {
+			ID    string `json:"id"`
+			Email string `json:"email"`
+			Name  string `json:"name"`
+		} `json:"user_info"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "请提供有效的访问令牌和用户信息",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 这里可以添加对OIDC access token的验证逻辑
+	// 目前暂时信任前端传来的用户信息
+	if req.UserInfo.ID == "" || req.UserInfo.Email == "" || req.UserInfo.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_user_info",
+			"message": "用户信息不完整，请重新登录",
+		})
+		return
+	}
+
+	// 生成JWT token
+	token, err := middleware.GenerateToken(req.UserInfo.ID, req.UserInfo.Email, req.UserInfo.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "token_generation_failed",
+			"message": "生成访问令牌失败，请稍后重试",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 返回JWT token
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   86400, // 24小时
+		"user_info": gin.H{
+			"id":    req.UserInfo.ID,
+			"email": req.UserInfo.Email,
+			"name":  req.UserInfo.Name,
+		},
+		"message": "登录成功",
+	})
+}
+
+// GetMockUser 开发模式专用：获取模拟用户（仅用于本地开发）
+func (h *Handler) GetMockUser(c *gin.Context) {
+	// 模拟用户陈楠的信息
+	mockUser := map[string]interface{}{
+		"id":        "22231",
+		"name":      "陈楠",
+		"email":     "chennan1@kingsoft.com",
+		"avatarUrl": "https://picsum.photos/seed/22231/40/40",
+		"deptId":    28508729,
+		"deptName":  "前端开发部",
+	}
+
+	c.JSON(http.StatusOK, mockUser)
+}
+
+// GetDevProjects 开发模式专用：获取项目数据（不需要认证）
+func (h *Handler) GetDevProjects(c *gin.Context) {
+	// 复用现有的获取项目逻辑
+	h.GetProjects(c)
+}
+
+// GetDevUsers 开发模式专用：获取用户数据（不需要认证）
+func (h *Handler) GetDevUsers(c *gin.Context) {
+	// 复用现有的获取用户逻辑
+	h.GetUsers(c)
+}
+
+// GetDevOkrSets 开发模式专用：获取OKR数据（不需要认证）
+func (h *Handler) GetDevOkrSets(c *gin.Context) {
+	// 复用现有的获取OKR逻辑
+	h.GetOkrSets(c)
+}
+
+// CreateDevProject 开发模式专用：创建项目（不需要认证）
+func (h *Handler) CreateDevProject(c *gin.Context) {
+	// 复用现有的创建项目逻辑
+	h.CreateProject(c)
+}
+
+// UpdateDevProject 开发模式专用：更新项目（不需要认证）
+func (h *Handler) UpdateDevProject(c *gin.Context) {
+	// 复用现有的更新项目逻辑
+	h.UpdateProject(c)
+}
+
+// DeleteDevProject 开发模式专用：删除项目（不需要认证）
+func (h *Handler) DeleteDevProject(c *gin.Context) {
+	// 复用现有的删除项目逻辑
+	h.DeleteProject(c)
+}
+
+// CreateDevOkrSet 开发模式专用：创建OKR集合（不需要认证）
+func (h *Handler) CreateDevOkrSet(c *gin.Context) {
+	// 复用现有的创建OKR逻辑
+	h.CreateOkrSet(c)
+}
+
+// UpdateDevOkrSet 开发模式专用：更新OKR集合（不需要认证）
+func (h *Handler) UpdateDevOkrSet(c *gin.Context) {
+	// 复用现有的更新OKR逻辑
+	h.UpdateOkrSet(c)
+}
+
+// PerformDevWeeklyRollover 开发模式专用：执行周度滚动（不需要认证）
+func (h *Handler) PerformDevWeeklyRollover(c *gin.Context) {
+	// 复用现有的周度滚动逻辑
+	h.PerformWeeklyRollover(c)
 }

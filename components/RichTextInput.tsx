@@ -199,7 +199,12 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                 `}
                 style={{
                     minHeight: `${21 * minRows}px`,
-                    lineHeight: '21px'
+                    lineHeight: '21px',
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    maxWidth: '100%',
+                    whiteSpace: 'pre-wrap'
                 }}
                 data-placeholder={placeholder}
             />
@@ -212,6 +217,19 @@ export const RichTextInput: React.FC<RichTextInputProps> = ({
                 }
                 .rich-text-input [contenteditable]:focus:before {
                     display: none;
+                }
+                .rich-text-input [contenteditable] {
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    white-space: pre-wrap;
+                    max-width: 100%;
+                }
+                .rich-text-input [contenteditable] * {
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 100%;
                 }
             `}</style>
         </div>

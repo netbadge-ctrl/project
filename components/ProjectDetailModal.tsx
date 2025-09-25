@@ -321,6 +321,11 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                              <div 
                                 dangerouslySetInnerHTML={{ __html: project.lastWeekUpdate || `<span class="text-sm text-gray-400 dark:text-gray-500">暂无记录</span>`}}
                                 className="p-2 bg-gray-100 dark:bg-[#2d2d2d] rounded-lg text-gray-600 dark:text-gray-400 whitespace-pre-wrap text-xs max-h-40 overflow-y-auto"
+                                style={{
+                                    wordWrap: 'break-word',
+                                    wordBreak: 'break-word',
+                                    overflowWrap: 'anywhere'
+                                }}
                             />
                         </InfoBlock>
                     </div>
