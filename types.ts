@@ -53,7 +53,8 @@ export enum Priority {
 }
 
 export interface KeyResult {
-  id: string;
+  id: string;          // 复合ID格式：okrId::krSequence，确保全局唯一性
+  sequence?: string;   // 原始序列号，如 "kr1", "kr2"（可选，用于向后兼容）
   description: string;
 }
 

@@ -58,18 +58,49 @@ const formatScheduleDate = (dateString: string | undefined): string => {
   }
 };
 
-// 获取成员的排期信息
+// 获取成员的排期信息（支持多段排期）
 const getMemberSchedule = (member: TeamMember): string => {
   // 检查是否有timeSlots
   if (member.timeSlots && member.timeSlots.length > 0) {
-    const firstSlot = member.timeSlots[0];
-    const startDate = formatScheduleDate(firstSlot.startDate);
-    const endDate = formatScheduleDate(firstSlot.endDate);
-    if (startDate && endDate) {
-      return `${startDate}至${endDate}`;
-    } else if (startDate) {
-      return startDate;
+    // 过滤出有效的时段（有开始和结束日期）
+    const validSlots = member.timeSlots.filter(slot => slot.startDate && slot.endDate);
+    
+    if (validSlots.length === 0) {
+      // 如果没有有效时段，检查是否有只有开始日期的时段
+      const startOnlySlots = member.timeSlots.filter(slot => slot.startDate && !slot.endDate);
+      if (startOnlySlots.length > 0) {
+        return formatScheduleDate(startOnlySlots[0].startDate);
+      }
+      return '';
     }
+    
+    // 如果只有一个时段，直接返回该时段的日期范围
+    if (validSlots.length === 1) {
+      const startDate = formatScheduleDate(validSlots[0].startDate);
+      const endDate = formatScheduleDate(validSlots[0].endDate);
+      if (startDate && endDate) {
+        return `${startDate}至${endDate}`;
+      }
+      return startDate || '';
+    }
+    
+    // 多段排期：找到最早的开始日期和最晚的结束日期
+    const sortedSlots = validSlots.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    const firstStartDate = formatScheduleDate(sortedSlots[0].startDate);
+    
+    // 找到最晚的结束日期
+    const latestEndDate = validSlots.reduce((latest, slot) => {
+      const slotEndDate = new Date(slot.endDate);
+      const latestDate = new Date(latest);
+      return slotEndDate > latestDate ? slot.endDate : latest;
+    }, validSlots[0].endDate);
+    
+    const lastEndDate = formatScheduleDate(latestEndDate);
+    
+    if (firstStartDate && lastEndDate) {
+      return `${firstStartDate}至${lastEndDate}`;
+    }
+    return firstStartDate || '';
   }
   
   // 兼容旧的startDate/endDate字段

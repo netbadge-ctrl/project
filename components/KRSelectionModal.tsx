@@ -24,67 +24,46 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
   triggerRef,
   useDropdown = false
 }) => {
-  // 兼容性处理：将简单KR ID转换为复合ID
-  const convertToCompositeIds = (krIds: string[], okrs: OKR[]): string[] => {
-    const result: string[] = [];
-    const usedKrIds = new Set<string>();
-    
-    for (const krId of krIds) {
-      // 如果已经是复合ID格式，直接使用
-      if (krId.includes('::')) {
-        result.push(krId);
-        continue;
-      }
-      
-      // 对于简单ID，找到对应的OKR并创建复合ID
-      for (const okr of okrs) {
-        for (const kr of okr.keyResults) {
-          if (kr.id === krId && !usedKrIds.has(krId)) {
-            const compositeId = `${okr.id}::${kr.id}`;
-            result.push(compositeId);
-            usedKrIds.add(krId);
-            break;
-          }
-        }
-        if (usedKrIds.has(krId)) break;
-      }
-    }
-    
-    return result;
-  };
-  
-  // 将复合ID转换回简单ID（为了与现有数据格式兼容）
-  const convertToSimpleIds = (compositeIds: string[]): string[] => {
-    return compositeIds.map(id => {
-      if (id.includes('::')) {
-        return id.split('::')[1]; // 取KR ID部分
-      }
-      return id;
-    });
-  };
-  
-  const [currentSelection, setCurrentSelection] = useState<string[]>(
-    convertToCompositeIds(selectedKrIds || [], allOkrs)
-  );
+  // 根据项目规范：现在所有KR都使用复合ID格式，确保全局唯一性
+  // 直接使用复合ID，无需复杂转换逻辑
+  const [currentSelection, setCurrentSelection] = useState<string[]>(selectedKrIds || []);
 
   useEffect(() => {
     console.log('🔧 KRSelectionModal useEffect:', { selectedKrIds, isOpen, currentSelection });
-    // 只在模态框打开时重置选择状态，避免在关闭时重置
+    // 只在模态框打开时重置选择状态
     if (isOpen) {
-      const compositeIds = convertToCompositeIds(selectedKrIds || [], allOkrs);
-      setCurrentSelection(compositeIds);
+      // 对于已有的KR关联，需要转换为复合ID格式
+      const convertedSelection: string[] = [];
+      (selectedKrIds || []).forEach(krId => {
+        if (krId.includes('::')) {
+          // 已经是复合ID格式
+          convertedSelection.push(krId);
+        } else {
+          // 简单ID格式，需要找到对应的OKR并生成复合ID
+          // 由于数据中存在重复的KR ID，我们使用第一个匹配的
+          for (const okr of allOkrs) {
+            for (const kr of okr.keyResults) {
+              if (kr.id === krId) {
+                convertedSelection.push(`${okr.id}::${kr.id}`);
+                return; // 找到第一个匹配就停止
+              }
+            }
+          }
+        }
+      });
+      setCurrentSelection(convertedSelection);
     }
   }, [selectedKrIds, isOpen, allOkrs]);
 
   const handleToggleOption = (okrId: string, krId: string) => {
-    // 使用复合ID来确保唯一性
-    const compositeId = `${okrId}::${krId}`;
-    console.log('🔧 KRSelectionModal - Toggle KR:', { okrId, krId, compositeId, currentSelection });
+    // 生成复合ID来确保唯一性，因为现在数据中的KR ID仍然是简单格式
+    const uniqueKrId = `${okrId}::${krId}`;
+    console.log('🔧 KRSelectionModal - Toggle KR:', { okrId, krId, uniqueKrId, currentSelection });
     
     const selection = currentSelection || [];
-    const newSelection = selection.includes(compositeId)
-      ? selection.filter(id => id !== compositeId)
-      : [...selection, compositeId];
+    const newSelection = selection.includes(uniqueKrId)
+      ? selection.filter(id => id !== uniqueKrId)
+      : [...selection, uniqueKrId];
       
     console.log('🔧 KRSelectionModal - New selection:', newSelection);
     setCurrentSelection(newSelection);
@@ -94,18 +73,29 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
     console.log('🔧 KR Selection Modal - Save clicked, selection:', currentSelection);
     console.log('🔧 KR Selection Modal - Original selectedKrIds:', selectedKrIds);
     
-    // 转换回简单ID格式以保持兼容性
-    const simpleIds = convertToSimpleIds(currentSelection);
-    console.log('🔧 KR Selection Modal - Converted to simple IDs:', simpleIds);
+    // 将复合ID转换回简单ID以保持与后端的兼容性
+    const simpleIds = currentSelection.map(compositeId => {
+      if (compositeId.includes('::')) {
+        return compositeId.split('::')[1]; // 取KR ID部分
+      }
+      return compositeId; // 已经是简单ID
+    });
     
+    console.log('🔧 KR Selection Modal - Converted to simple IDs:', simpleIds);
+    console.log('🔧 KR Selection Modal - Conversion details:');
+    currentSelection.forEach((compositeId, index) => {
+      const simpleId = compositeId.includes('::') ? compositeId.split('::')[1] : compositeId;
+      console.log(`  ${index}: ${compositeId} → ${simpleId}`);
+    });
+    
+    console.log('🔧 KR Selection Modal - Calling onSave with:', simpleIds);
     onSave(simpleIds);
     onClose();
   };
 
   const handleCancel = () => {
     console.log('🔧 KRSelectionModal - Cancel clicked, resetting to:', selectedKrIds);
-    const compositeIds = convertToCompositeIds(selectedKrIds || [], allOkrs);
-    setCurrentSelection(compositeIds);
+    setCurrentSelection(selectedKrIds || []);
     onClose();
   };
 
@@ -184,20 +174,20 @@ const KRSelectionModal: React.FC<KRSelectionModalProps> = ({
                 </h3>
                 <div className="space-y-3 pl-4">
                   {okr.keyResults.map((kr, krIndex) => {
-                    // 使用复合ID来检查是否被选中
-                    const compositeId = `${okr.id}::${kr.id}`;
-                    const isChecked = currentSelection.includes(compositeId);
+                    // 生成复合ID来确保唯一性
+                    const uniqueKrId = `${okr.id}::${kr.id}`;
+                    const isChecked = currentSelection.includes(uniqueKrId);
                     console.log('🔧 KRSelectionModal render KR:', { 
                       okrIndex: okrIndex + 1, 
                       krIndex: krIndex + 1, 
-                      krId: kr.id, 
-                      compositeId,
+                      originalKrId: kr.id,
+                      uniqueKrId: uniqueKrId,
                       description: kr.description,
                       isChecked,
                       currentSelection 
                     });
                     return (
-                      <label key={kr.id} className="flex items-start gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <label key={uniqueKrId} className="flex items-start gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <input
                           type="checkbox"
                           checked={isChecked}

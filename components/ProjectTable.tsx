@@ -285,11 +285,10 @@ const OkrMultiSelectCell: React.FC<{
   const [isHovering, setIsHovering] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
 
-  // 构建两个映射：简单ID映射和复合ID映射
-  const { allKrsMap, compositeKrsMap } = useMemo(() => {
-    const simpleMap = new Map<string, { description: string; oNumber: number; krNumber: number; objective: string; okrId: string }>();
-    const compositeMap = new Map<string, { description: string; oNumber: number; krNumber: number; objective: string; okrId: string }>();
-    console.log('🔧 OkrMultiSelectCell building KR maps from OKRs:', allOkrs);
+  // 构建 KR 映射，支持简单ID和复合ID
+  const { allKrsMap } = useMemo(() => {
+    const krMap = new Map<string, { description: string; oNumber: number; krNumber: number; objective: string; okrId: string }>();
+    console.log('🔧 OkrMultiSelectCell building KR map from OKRs:', allOkrs);
     
     (allOkrs || []).forEach((okr, okrIndex) => {
       console.log('🔧 Processing OKR:', { okrIndex, okr });
@@ -301,22 +300,19 @@ const OkrMultiSelectCell: React.FC<{
           objective: okr.objective,
           okrId: okr.id
         };
-        console.log('🔧 Adding KR to maps:', { krId: kr.id, krData });
+        console.log('🔧 Adding KR to map:', { krId: kr.id, krData });
         
-        // 简单ID映射（用于向后兼容，存在重复风险）
-        if (simpleMap.has(kr.id)) {
-          console.warn('😨 Found duplicate KR ID:', kr.id, 'in OKR:', okr.id);
-        }
-        simpleMap.set(kr.id, krData);
+        // 为简单ID创建映射（向后兼容）
+        krMap.set(kr.id, krData);
         
-        // 复合ID映射（唯一标识）
+        // 为复合ID创建映射（新格式）
         const compositeId = `${okr.id}::${kr.id}`;
-        compositeMap.set(compositeId, krData);
+        krMap.set(compositeId, krData);
       });
     });
     
-    console.log('🔧 Final KR maps:', { simpleMap, compositeMap });
-    return { allKrsMap: simpleMap, compositeKrsMap: compositeMap };
+    console.log('🔧 Final KR map:', krMap);
+    return { allKrsMap: krMap };
   }, [allOkrs]);
 
   const handleOpenModal = () => {
@@ -330,6 +326,8 @@ const OkrMultiSelectCell: React.FC<{
   const handleSave = (newKrIds: string[]) => {
     console.log('🔧 OkrMultiSelectCell - handleSave called with:', newKrIds);
     console.log('🔧 OkrMultiSelectCell - Current selectedKrIds:', selectedKrIds);
+    console.log('🔧 OkrMultiSelectCell - Changes detected:', JSON.stringify(selectedKrIds) !== JSON.stringify(newKrIds));
+    console.log('🔧 OkrMultiSelectCell - Calling onSave with:', newKrIds);
     onSave(newKrIds);
   };
 
@@ -372,56 +370,28 @@ const OkrMultiSelectCell: React.FC<{
             <h3 className="font-bold mb-2 border-b border-gray-600 pb-1.5">关联的关键成果 (KR)</h3>
             <ul className="space-y-1.5 text-xs max-h-60 overflow-y-auto">
               {(selectedKrIds || []).map(krId => {
+                // 处理新的复合ID格式和旧的简单ID格式
                 let krDetails = null;
-                let actualKrId = krId;
                 
-                // 智能KR查找逻辑
-                // 1. 首先尝试从复合ID映射中查找（处理新选择的KR）
                 if (krId.includes('::')) {
-                  // 如果是复合ID，直接使用
-                  krDetails = compositeKrsMap.get(krId);
-                  actualKrId = krId;
+                  // 复合ID格式，直接查找
+                  krDetails = allKrsMap.get(krId);
                 } else {
-                  // 2. 对于简单ID，优先查找用户最近选择的OKR中的KR
-                  // 通过分析用户选择模式来推断最可能的KR
-                  const candidateCompositeIds: string[] = [];
-                  
-                  // 收集所有匹配的复合ID
-                  for (const [compositeId, details] of compositeKrsMap.entries()) {
-                    if (compositeId.endsWith(`::${krId}`)) {
-                      candidateCompositeIds.push(compositeId);
-                    }
-                  }
-                  
-                  console.log('🔧 Tooltip found candidate composite IDs for', krId, ':', candidateCompositeIds);
-                  
-                  if (candidateCompositeIds.length === 1) {
-                    // 只有一个匹配，直接使用
-                    krDetails = compositeKrsMap.get(candidateCompositeIds[0]);
-                    actualKrId = candidateCompositeIds[0];
-                  } else if (candidateCompositeIds.length > 1) {
-                    // 多个匹配，使用智能选择逻辑
-                    // 优先选择O1（通常是最重要的OKR）
-                    const o1Candidate = candidateCompositeIds.find(id => id.startsWith('o1::'));
-                    if (o1Candidate) {
-                      krDetails = compositeKrsMap.get(o1Candidate);
-                      actualKrId = o1Candidate;
-                    } else {
-                      // 如果没有O1，选择第一个
-                      krDetails = compositeKrsMap.get(candidateCompositeIds[0]);
-                      actualKrId = candidateCompositeIds[0];
-                    }
-                    console.log('🔧 Tooltip selected KR from multiple candidates:', { selectedId: actualKrId, reason: o1Candidate ? 'O1 priority' : 'first match' });
-                  } else {
-                    // 3. 如果复合ID映射中找不到，回退到简单ID映射
-                    krDetails = allKrsMap.get(krId);
-                  }
+                  // 简单ID格式，需要智能匹配正确的OKR
+                  // 由于数据中存在重复的KR ID，我们需要通过上下文来决定使用哪个
+                  // 暂时使用第一个匹配的KR（这是一个临时解决方案）
+                  krDetails = allKrsMap.get(krId);
                 }
                 
-                console.log('🔧 Tooltip KR Details:', { originalKrId: krId, actualKrId, krDetails });
-                if (!krDetails) return null;
+                console.log('🔧 Tooltip KR Details:', { krId, krDetails });
+                
+                if (!krDetails) {
+                  console.warn('🚨 未找到KR详情:', krId);
+                  return null;
+                }
+                
                 return (
-                  <li key={actualKrId}>
+                  <li key={krId}>
                     <strong className="text-gray-300 block">O{krDetails.oNumber}-KR{krDetails.krNumber}: {krDetails.objective}</strong>
                     <span className="text-gray-400 pl-2">{krDetails.description}</span>
                   </li>

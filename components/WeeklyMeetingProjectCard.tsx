@@ -210,12 +210,51 @@ const StatusBadge: React.FC<{ status: ProjectStatus; project: Project; allUsers:
                           {team.map((member, idx) => {
                             const user = allUsers.find(u => u.id === member.userId);
                             const userName = user ? user.name : '未知用户';
+                            
+                            // 获取成员的排期信息（支持多段排期）
+                            let scheduleText = '';
+                            if (member.timeSlots && member.timeSlots.length > 0) {
+                              // 过滤出有效的时段（有开始和结束日期）
+                              const validSlots = member.timeSlots.filter((slot: any) => slot.startDate && slot.endDate);
+                              
+                              if (validSlots.length === 0) {
+                                // 如果没有有效时段，检查是否有只有开始日期的时段
+                                const startOnlySlots = member.timeSlots.filter((slot: any) => slot.startDate && !slot.endDate);
+                                if (startOnlySlots.length > 0) {
+                                  scheduleText = startOnlySlots[0].startDate.split('T')[0] + ' 开始';
+                                }
+                              } else if (validSlots.length === 1) {
+                                // 如果只有一个时段，直接返回该时段的日期范围
+                                const slot = validSlots[0];
+                                scheduleText = `${slot.startDate.split('T')[0]} ~ ${slot.endDate.split('T')[0]}`;
+                              } else {
+                                // 多段排期：找到最早的开始日期和最晚的结束日期
+                                const sortedSlots = validSlots.sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+                                const firstStartDate = sortedSlots[0].startDate.split('T')[0];
+                                
+                                // 找到最晚的结束日期
+                                const latestEndDate = validSlots.reduce((latest: string, slot: any) => {
+                                  const slotEndDate = new Date(slot.endDate);
+                                  const latestDate = new Date(latest);
+                                  return slotEndDate > latestDate ? slot.endDate : latest;
+                                }, validSlots[0].endDate);
+                                
+                                const lastEndDate = latestEndDate.split('T')[0];
+                                scheduleText = `${firstStartDate} ~ ${lastEndDate}`;
+                              }
+                            } else if (member.startDate && member.endDate) {
+                              // 兼容旧的startDate/endDate字段
+                              scheduleText = `${member.startDate.split('T')[0]} ~ ${member.endDate.split('T')[0]}`;
+                            } else if (member.startDate) {
+                              scheduleText = member.startDate.split('T')[0] + ' 开始';
+                            }
+                            
                             return (
                               <div key={`${member.userId}-${idx}`} className="text-gray-600 dark:text-gray-400">
                                 <span className="font-medium">{userName}</span>
-                                {member.startDate && member.endDate && (
+                                {scheduleText && (
                                   <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                                    {member.startDate.split('T')[0]} ~ {member.endDate.split('T')[0]}
+                                    {scheduleText}
                                   </div>
                                 )}
                               </div>

@@ -48,6 +48,10 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			public.POST("/dev/okr-sets", handler.CreateDevOkrSet)                         // 创建OKR集合（开发模式）
 			public.PUT("/dev/okr-sets/:periodId", handler.UpdateDevOkrSet)                // 更新OKR集合（开发模式）
 			public.POST("/dev/perform-weekly-rollover", handler.PerformDevWeeklyRollover) // 周度滚动（开发模式）
+			// KR ID修复相关端点（开发模式）
+			public.POST("/dev/reinitialize-okr-data", handler.ReinitializeOkrData)          // 重新初始化OKR数据，修复KR ID重复问题
+			public.POST("/dev/smart-migrate-kr-data", handler.SmartMigrateKrData)           // 智能KR数据迁移，保留现有项目的KR关联
+			public.POST("/dev/add-sample-kr-associations", handler.AddSampleKrAssociations) // 为示例项目添加KR关联
 		}
 
 		// 受保护的路由（需要JWT认证）

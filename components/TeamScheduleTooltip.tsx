@@ -6,6 +6,88 @@ interface TeamScheduleTooltipProps {
   allUsers: User[];
 }
 
+// 获取成员的排期信息（支持多段排期）
+const getMemberSchedule = (member: any): string => {
+  // 检查是否有timeSlots
+  if (member.timeSlots && member.timeSlots.length > 0) {
+    // 过滤出有效的时段（有开始和结束日期）
+    const validSlots = member.timeSlots.filter((slot: any) => slot.startDate && slot.endDate);
+    
+    if (validSlots.length === 0) {
+      // 如果没有有效时段，检查是否有只有开始日期的时段
+      const startOnlySlots = member.timeSlots.filter((slot: any) => slot.startDate && !slot.endDate);
+      if (startOnlySlots.length > 0) {
+        const startDateObj = new Date(startOnlySlots[0].startDate);
+        if (!isNaN(startDateObj.getTime())) {
+          return startOnlySlots[0].startDate.replace(/-/g, '.') + ' 开始';
+        }
+      }
+      return '无排期';
+    }
+    
+    // 如果只有一个时段，直接返回该时段的日期范围
+    if (validSlots.length === 1) {
+      const slot = validSlots[0];
+      const startDateObj = new Date(slot.startDate);
+      const endDateObj = new Date(slot.endDate);
+      if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+        const startDate = startDateObj.toLocaleDateString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\//g, '.');
+        const endDate = endDateObj.toLocaleDateString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\//g, '.');
+        return `${startDate} - ${endDate}`;
+      }
+      return '无排期';
+    }
+    
+    // 多段排期：找到最早的开始日期和最晚的结束日期
+    const sortedSlots = validSlots.sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    const firstStartDateObj = new Date(sortedSlots[0].startDate);
+    
+    // 找到最晚的结束日期
+    const latestEndDate = validSlots.reduce((latest: string, slot: any) => {
+      const slotEndDate = new Date(slot.endDate);
+      const latestDate = new Date(latest);
+      return slotEndDate > latestDate ? slot.endDate : latest;
+    }, validSlots[0].endDate);
+    
+    const lastEndDateObj = new Date(latestEndDate);
+    
+    if (!isNaN(firstStartDateObj.getTime()) && !isNaN(lastEndDateObj.getTime())) {
+      const startDate = firstStartDateObj.toLocaleDateString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/\//g, '.');
+      const endDate = lastEndDateObj.toLocaleDateString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/\//g, '.');
+      return `${startDate} - ${endDate}`;
+    }
+    return '无排期';
+  }
+  
+  // 兼容旧的startDate/endDate字段
+  if (member.startDate && member.endDate) {
+    const startDateObj = new Date(member.startDate);
+    const endDateObj = new Date(member.endDate);
+    if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+      return `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
+    }
+  } else if (member.startDate) {
+    const startDateObj = new Date(member.startDate);
+    if (!isNaN(startDateObj.getTime())) {
+      return `${member.startDate.replace(/-/g, '.')} 开始`;
+    }
+  }
+  
+  return '无排期';
+};
+
 const RoleSection: React.FC<{ role: Role; roleName: string; allUsers: User[] }> = ({ role, roleName, allUsers }) => {
   if (!role || role.length === 0) return null;
 
@@ -16,48 +98,9 @@ const RoleSection: React.FC<{ role: Role; roleName: string; allUsers: User[] }> 
         {(role || []).map(member => {
           const user = allUsers.find(u => u.id === member.userId);
           if (!user) return null;
-          // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
-          let schedule;
-          if (member.timeSlots && member.timeSlots.length > 0) {
-            // 显示第一个 timeSlot 的时间段
-            const slot = member.timeSlots[0];
-            if (slot.startDate && slot.endDate) {
-              const startDateObj = new Date(slot.startDate);
-              const endDateObj = new Date(slot.endDate);
-              if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
-                const startDate = startDateObj.toLocaleDateString('zh-CN', {
-                  month: '2-digit',
-                  day: '2-digit'
-                }).replace(/\//g, '.');
-                const endDate = endDateObj.toLocaleDateString('zh-CN', {
-                  month: '2-digit',
-                  day: '2-digit'
-                }).replace(/\//g, '.');
-                schedule = `${startDate} - ${endDate}`;
-              } else {
-                schedule = '无排期';
-              }
-            } else {
-              schedule = '无排期';
-            }
-          } else if (member.startDate && member.endDate) {
-            const startDateObj = new Date(member.startDate);
-            const endDateObj = new Date(member.endDate);
-            if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
-              schedule = `${member.startDate.replace(/-/g, '.')} - ${member.endDate.replace(/-/g, '.')}`;
-            } else {
-              schedule = '无排期';
-            }
-          } else if (member.startDate) {
-            const startDateObj = new Date(member.startDate);
-            if (!isNaN(startDateObj.getTime())) {
-              schedule = `${member.startDate.replace(/-/g, '.')} 开始`;
-            } else {
-              schedule = '无排期';
-            }
-          } else {
-            schedule = '无排期';
-          }
+          
+          const schedule = getMemberSchedule(member);
+          
           return (
             <li key={user.id} className="flex justify-between items-center gap-3">
               <span className="text-gray-200">{user.name}</span>

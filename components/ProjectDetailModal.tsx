@@ -42,6 +42,57 @@ const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
   );
 };
 
+const EditablePrioritySelect: React.FC<{ 
+    priority: Priority; 
+    onPriorityChange: (priority: Priority) => void;
+}> = ({ priority, onPriorityChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    const priorityOptions = [
+        Priority.DeptOKR,
+        Priority.PersonalOKR,
+        Priority.UrgentRequirement,
+        Priority.LowPriority,
+    ];
+
+    const handlePrioritySelect = (newPriority: Priority) => {
+        onPriorityChange(newPriority);
+        setIsOpen(false);
+    };
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#2d2d2d] rounded-lg p-1 transition-colors group"
+            >
+                <PriorityBadge priority={priority} />
+                <IconChevronDown className="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+            </button>
+            
+            {isOpen && (
+                <>
+                    <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#4a4a4a] rounded-lg shadow-lg z-20 min-w-[160px] max-h-60 overflow-y-auto">
+                        {priorityOptions.map((priorityOption) => (
+                            <button
+                                key={priorityOption}
+                                onClick={() => handlePrioritySelect(priorityOption)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-[#3a3a3a] transition-colors flex items-center"
+                            >
+                                <PriorityBadge priority={priorityOption} />
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 const EditableStatusSelect: React.FC<{ 
     status: ProjectStatus; 
     onStatusChange: (status: ProjectStatus) => void;
@@ -215,6 +266,10 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         onUpdateProject(project.id, 'status', newStatus);
     };
 
+    const handlePriorityChange = (newPriority: Priority) => {
+        onUpdateProject(project.id, 'priority', newPriority);
+    };
+
     const handleProjectNameSave = (newName: string) => {
         if (newName.trim() !== project.name.trim()) {
             onUpdateProject(project.id, 'name', newName.trim());
@@ -284,7 +339,12 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                             />
                         </InfoBlock>
                         <div className="grid grid-cols-2 gap-4">
-                            <InfoBlock label="优先级"><PriorityBadge priority={project.priority} /></InfoBlock>
+                            <InfoBlock label="优先级">
+                                <EditablePrioritySelect 
+                                    priority={project.priority} 
+                                    onPriorityChange={handlePriorityChange}
+                                />
+                            </InfoBlock>
                             <InfoBlock label="状态">
                                 <EditableStatusSelect 
                                     status={project.status} 
@@ -360,12 +420,28 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                                                         <ul className="space-y-1">
                                                             {team.map(member => {
                                                                 const user = allUsers.find(u => u.id === member.userId);
-                                                                // 优先显示 timeSlots 中的排期，如果没有则显示 startDate-endDate
+                                                                // 获取成员的排期信息（支持多段排期）
                                                                 let scheduleText;
                                                                 if (member.timeSlots && member.timeSlots.length > 0) {
-                                                                    // 显示第一个 timeSlot 的时间段
-                                                                    const slot = member.timeSlots[0];
-                                                                    if (slot.startDate && slot.endDate) {
+                                                                    // 过滤出有效的时段（有开始和结束日期）
+                                                                    const validSlots = member.timeSlots.filter((slot: any) => slot.startDate && slot.endDate);
+                                                                                                                    
+                                                                    if (validSlots.length === 0) {
+                                                                        // 如果没有有效时段，检查是否有只有开始日期的时段
+                                                                        const startOnlySlots = member.timeSlots.filter((slot: any) => slot.startDate && !slot.endDate);
+                                                                        if (startOnlySlots.length > 0) {
+                                                                            const startDateObj = new Date(startOnlySlots[0].startDate);
+                                                                            if (!isNaN(startDateObj.getTime())) {
+                                                                                scheduleText = startOnlySlots[0].startDate.replace(/-/g, '.') + ' 开始';
+                                                                            } else {
+                                                                                scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                            }
+                                                                        } else {
+                                                                            scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                        }
+                                                                    } else if (validSlots.length === 1) {
+                                                                        // 如果只有一个时段，直接返回该时段的日期范围
+                                                                        const slot = validSlots[0];
                                                                         const startDateObj = new Date(slot.startDate);
                                                                         const endDateObj = new Date(slot.endDate);
                                                                         if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
@@ -382,7 +458,32 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                                                                             scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
                                                                         }
                                                                     } else {
-                                                                        scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                        // 多段排期：找到最早的开始日期和最晚的结束日期
+                                                                        const sortedSlots = validSlots.sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+                                                                        const firstStartDateObj = new Date(sortedSlots[0].startDate);
+                                                                                                                        
+                                                                        // 找到最晚的结束日期
+                                                                        const latestEndDate = validSlots.reduce((latest: string, slot: any) => {
+                                                                            const slotEndDate = new Date(slot.endDate);
+                                                                            const latestDate = new Date(latest);
+                                                                            return slotEndDate > latestDate ? slot.endDate : latest;
+                                                                        }, validSlots[0].endDate);
+                                                                                                                        
+                                                                        const lastEndDateObj = new Date(latestEndDate);
+                                                                                                                        
+                                                                        if (!isNaN(firstStartDateObj.getTime()) && !isNaN(lastEndDateObj.getTime())) {
+                                                                            const startDate = firstStartDateObj.toLocaleDateString('zh-CN', {
+                                                                                month: '2-digit',
+                                                                                day: '2-digit'
+                                                                            }).replace(/\//g, '.');
+                                                                            const endDate = lastEndDateObj.toLocaleDateString('zh-CN', {
+                                                                                month: '2-digit',
+                                                                                day: '2-digit'
+                                                                            }).replace(/\//g, '.');
+                                                                            scheduleText = `${startDate} - ${endDate}`;
+                                                                        } else {
+                                                                            scheduleText = <span className="text-gray-500 dark:text-gray-400">无排期</span>;
+                                                                        }
                                                                     }
                                                                 } else if (member.startDate && member.endDate) {
                                                                     const startDateObj = new Date(member.startDate);

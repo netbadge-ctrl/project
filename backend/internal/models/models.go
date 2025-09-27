@@ -56,8 +56,11 @@ type ChangeLogEntry struct {
 }
 
 // KeyResult OKR关键结果
+// 注意：KR ID现在采用复合格式 "okrId::krSequence"，确保全局唯一性
+// 例如："o1::kr1", "o2::kr1" 等
 type KeyResult struct {
-	ID          string `json:"id"`
+	ID          string `json:"id"`          // 复合ID格式：okrId::krSequence
+	Sequence    string `json:"sequence"`    // 原始序列号，如 "kr1", "kr2"
 	Description string `json:"description"`
 }
 

@@ -424,11 +424,13 @@ const App: React.FC<AppProps> = ({ currentUser }) => {
             console.log('🔧 App - KR update details:', { 
                 oldKRs: projectToUpdate.keyResultIds,
                 newKRs: value,
-                isArray: Array.isArray(value)
+                isArray: Array.isArray(value),
+                dataBeingSet: JSON.stringify(value)
             });
+            console.log('🔧 App - Updates object being sent to API:', updates);
         }
-        await api.updateProject(projectId, updates);
-        console.log('🔧 App - Project update successful');
+        const result = await api.updateProject(projectId, updates);
+        console.log('🔧 App - Project update successful, API response:', result);
         // On success, state is already updated. No full refresh needed.
     } catch (error) {
         console.error("Failed to update project", error);

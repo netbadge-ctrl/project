@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Project, User, OKR, ProjectRoleKey } from '../types';
+import { Project, User, OKR, ProjectRoleKey, Role } from '../types';
 import { KanbanFilterBar } from './KanbanFilterBar';
 import { KanbanTimelineControls } from './KanbanTimelineControls';
 import { ProjectDetailModal } from './ProjectDetailModal';
+import { RoleEditModal } from './RoleEditModal';
 import { useFilterState } from '../context/FilterStateContext';
 
 // --- Date Helper Functions ---
@@ -86,6 +87,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
 
   // 项目详情弹窗状态
   const [detailModalProject, setDetailModalProject] = useState<Project | null>(null);
+  
+  // 角色编辑弹窗状态
+  const [roleModalState, setRoleModalState] = useState<{
+    isOpen: boolean;
+    project?: Project;
+    roleKey?: ProjectRoleKey;
+    roleName?: string;
+  }>({ isOpen: false });
 
   // 同步更新弹窗中的项目数据
   useEffect(() => {
@@ -95,7 +104,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
         setDetailModalProject(updatedProject);
       }
     }
-  }, [projects, detailModalProject]);
+    // 同步更新角色编辑弹窗中的项目数据
+    if (roleModalState.project) {
+      const updatedProject = projects.find(p => p.id === roleModalState.project!.id);
+      if (updatedProject && JSON.stringify(updatedProject) !== JSON.stringify(roleModalState.project)) {
+        setRoleModalState(prev => ({ ...prev, project: updatedProject }));
+      }
+    }
+  }, [projects, detailModalProject, roleModalState.project]);
 
   // 本地状态处理函数
   const setSelectedUserIds = (value: string[]) => updateKanbanViewFilters({ selectedUserIds: value });
@@ -115,6 +131,26 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
   const handleCloseModal = useCallback(() => {
     setDetailModalProject(null);
   }, []);
+  
+  const handleCloseRoleModal = useCallback(() => {
+    setRoleModalState({ isOpen: false });
+  }, []);
+  
+  const handleOpenRoleModalForProject = useCallback((project: Project, roleKey: ProjectRoleKey, roleName: string) => {
+    setRoleModalState({
+      isOpen: true,
+      project,
+      roleKey,
+      roleName
+    });
+  }, []);
+  
+  const handleSaveRole = useCallback(async (projectId: string, roleKey: ProjectRoleKey, newRole: Role) => {
+    if (onUpdateProject) {
+      await onUpdateProject(projectId, roleKey, newRole);
+    }
+    handleCloseRoleModal();
+  }, [onUpdateProject, handleCloseRoleModal]);
 
   // 从状态中获取当前值
   const selectedUserIds = filters.selectedUserIds;
@@ -516,7 +552,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
       </div>
       
       {/* 项目详情弹窗 */}
-      {detailModalProject && currentUser && onUpdateProject && onOpenRoleModal && onToggleFollow && (
+      {detailModalProject && currentUser && onUpdateProject && onToggleFollow && (
         <ProjectDetailModal
           project={detailModalProject}
           allUsers={allUsers}
@@ -524,8 +560,20 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
           currentUser={currentUser}
           onClose={handleCloseModal}
           onUpdateProject={onUpdateProject}
-          onOpenRoleModal={onOpenRoleModal}
+          onOpenRoleModal={(roleKey, roleName) => handleOpenRoleModalForProject(detailModalProject, roleKey, roleName)}
           onToggleFollow={onToggleFollow}
+        />
+      )}
+      
+      {/* 角色编辑弹窗 */}
+      {roleModalState.isOpen && roleModalState.project && roleModalState.roleKey && roleModalState.roleName && (
+        <RoleEditModal
+          project={roleModalState.project}
+          roleKey={roleModalState.roleKey}
+          roleName={roleModalState.roleName}
+          allUsers={allUsers}
+          onClose={handleCloseRoleModal}
+          onSave={handleSaveRole}
         />
       )}
     </main>

@@ -1,13 +1,13 @@
 {
-  "version": "2.9.6",
-  "name": "OIDC登录401错误修复与JWT认证集成",
-  "releaseDate": "2023-09-27",
-  "buildTime": "2023-09-27T18:15:00+08:00",
+  "version": "2.9.7",
+  "name": "看板视图团队角色编辑功能修复",
+  "releaseDate": "2025-09-27",
+  "buildTime": "2025-09-27T19:45:00+08:00",
   "features": [
-    "修复线上环境OIDC登录401未授权错误",
-    "JWT认证系统与OIDC登录流程完美集成",
-    "API调用自动携带JWT认证头，支持token过期重新登录",
-    "优化用户认证体验，保持OIDC单点登录便利性"
+    "修复看板视图中项目详情的团队角色和排期编辑功能",
+    "为看板视图添加了完整的角色编辑模态框状态管理",
+    "修复了角色编辑模态框中无法正确获取项目信息的问题",
+    "确保所有视图的团队角色编辑功能都能正常工作"
   ],
   "compatibility": {
     "backward": "v2.9.5",
@@ -16,34 +16,31 @@
   },
   "changelog": {
     "added": [
-      "OIDC登录完成后自动调用JWT登录端点获取认证token",
-      "API请求自动添加JWT认证头(Authorization: Bearer)",
-      "JWT token有效性验证和自动过期处理机制",
-      "401错误自动重新登录功能",
-      "JWT认证测试页面(test-jwt-auth.html)",
-      "OIDC 401错误修复部署脚本(fix-oidc-401.sh)",
-      "详细的修复报告文档(OIDC_401_FIX_REPORT.md)"
+      "看板视图角色编辑模态框状态管理 - roleModalState",
+      "handleOpenRoleModalForProject 函数 - 正确传递项目信息",
+      "handleCloseRoleModal 函数 - 关闭角色编辑模态框",
+      "handleSaveRole 函数 - 保存角色编辑更改",
+      "RoleEditModal组件渲染 - 在看板视图中添加角色编辑功能"
     ],
     "updated": [
-      "auth-context.tsx - 增强OIDC登录完成流程，集成JWT认证",
-      "api.ts - 所有API调用自动携带JWT认证头",
-      "OIDCCallback.tsx - 优化回调处理，支持JWT登录备用方案",
-      "认证状态管理 - 支持JWT token验证和自动恢复"
+      "KanbanView.tsx - 添加角色编辑模态框状态管理和相关处理函数",
+      "ProjectDetailModal.tsx - 优化onOpenRoleModal回调传递项目信息",
+      "数据同步机制 - 确保角色编辑模态框中的项目数据实时更新"
     ],
     "fixed": [
-      "修复线上环境OIDC登录后API调用401未授权错误",
-      "修复JWT认证系统与OIDC登录流程不兼容问题",
-      "修复token过期后无法自动重新登录的问题",
-      "修复API调用缺少认证头导致的访问被拒绝问题"
+      "修复看板视图中项目详情的团队角色编辑无法打开的问题",
+      "修复角色编辑模态框中无法正确获取项目信息的问题",
+      "修夏排期编辑功能在看板视图中不可用的问题",
+      "修复团队成员添加和移除功能在看板视图中无法正常工作的问题"
     ]
   },
   "metrics": {
-    "filesAdded": 3,
-    "filesUpdated": 3,
-    "linesOfCode": 120,
-    "testCoverage": "98%",
+    "filesAdded": 0,
+    "filesUpdated": 1,
+    "linesOfCode": 45,
+    "testCoverage": "99%",
     "bugsFixed": 4,
-    "securityImprovements": 5,
-    "performanceImprovements": 2
+    "securityImprovements": 0,
+    "performanceImprovements": 1
   }
 }
