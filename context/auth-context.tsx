@@ -96,14 +96,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     console.log('🔧 Mock user loaded locally (fallback):', mockUser.name);
                 }
             } else {
-                // 生产模式：使用OIDC认证
-                const localUser = checkLocalAuth();
+                // 生产模式：检查OIDC和JWT认证状态
+                console.log('🔐 Production mode: Checking OIDC authentication');
                 
-                if (localUser) {
-                    setUser(localUser);
-                    setIsAuthenticated(true);
-                } else {
-                    setIsAuthenticated(false);
+                try {
+                    // 检查是否有保存的用户信息和JWT token
+                    const savedUser = localStorage.getItem('oidc_user');
+                    const jwtToken = localStorage.getItem('jwt_token');
+                    
+                    if (savedUser && jwtToken) {
+                        console.log('🔐 Found saved user and JWT token, validating...');
+                        
+                        // 验证JWT token是否有效
+                        try {
+                            const testResponse = await fetch(`${appConfig.apiBaseUrl}/users`, {
+                                headers: {
+                                    'Authorization': `Bearer ${jwtToken}`
+                                }
+                            });
+                            
+                            if (testResponse.ok) {
+                                // JWT token有效，恢复用户状态
+                                const user = JSON.parse(savedUser);
+                                setUser(user);
+                                setIsAuthenticated(true);
+                                console.log('🔐 JWT token valid, user restored:', user.name);
+                            } else {
+                                // JWT token无效，清除并重新登录
+                                console.log('🔐 JWT token invalid, clearing and redirecting to login');
+                                localStorage.removeItem('oidc_user');
+                                localStorage.removeItem('oidc_token');
+                                localStorage.removeItem('jwt_token');
+                                setIsAuthenticated(false);
+                                
+                                // 在生产环境中重新引导到OIDC登录
+                                if (appConfig.enableOIDC && !window.location.pathname.includes('/oidc-callback')) {
+                                    console.log('🔐 Redirecting to OIDC login...');
+                                    window.location.href = generateOIDCLoginUrl();
+                                    return;
+                                }
+                            }
+                        } catch (tokenError) {
+                            console.error('🔐 Error validating JWT token:', tokenError);
+                            // 清除无效的token
+                            localStorage.removeItem('oidc_user');
+                            localStorage.removeItem('oidc_token');
+                            localStorage.removeItem('jwt_token');
+                            setIsAuthenticated(false);
+                        }
+                    } else {
+                        console.log('🔐 No saved authentication found');
+                        setIsAuthenticated(false);
+                        
+                        // 在生产环境中自动引导到OIDC登录（除非在回调页面）
+                        if (appConfig.enableOIDC && !window.location.pathname.includes('/oidc-callback')) {
+                            console.log('🔐 Auto-redirecting to OIDC login...');
+                            window.location.href = generateOIDCLoginUrl();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('🗚️ Authentication initialization error:', error);
                 }
             }
             
@@ -116,9 +169,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 暴露给全局使用的登录方法
     window.completeOIDCLogin = async (userInfo: any, token: string) => {
         try {
-            // 通过邮箱查找数据库中的用户
-            const users = await api.fetchUsers();
-            const dbUser = users.find(u => u.email.toLowerCase() === userInfo.email.toLowerCase());
+            console.log('🔐 Starting OIDC login completion...', userInfo);
+            
+            // 第一步：调用JWT登录端点获取JWT token
+            const jwtResponse = await fetch(`${appConfig.apiBaseUrl}/jwt-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    access_token: token,
+                    user_info: {
+                        id: userInfo.sub || userInfo.id || userInfo.email,
+                        email: userInfo.email,
+                        name: userInfo.name || userInfo.preferred_username || userInfo.email
+                    }
+                })
+            });
+            
+            if (!jwtResponse.ok) {
+                const errorText = await jwtResponse.text();
+                console.error('JWT login failed:', errorText);
+                throw new Error(`JWT登录失败: ${jwtResponse.status} - ${errorText}`);
+            }
+            
+            const jwtData = await jwtResponse.json();
+            console.log('🔐 JWT login successful:', jwtData);
+            
+            // 第二步：通过邮箱查找数据库中的用户详细信息
+            const usersResponse = await fetch(`${appConfig.apiBaseUrl}/users`, {
+                headers: {
+                    'Authorization': `Bearer ${jwtData.access_token}`
+                }
+            });
+            
+            if (!usersResponse.ok) {
+                throw new Error('无法获取用户信息，请联系管理员');
+            }
+            
+            const users = await usersResponse.json();
+            const dbUser = users.find((u: any) => u.email.toLowerCase() === userInfo.email.toLowerCase());
             
             if (!dbUser) {
                 console.error('User not found in database:', userInfo.email);
@@ -127,17 +217,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             
             const user: User = {
-                id: dbUser.id, // 使用数据库中的用户ID
-                name: dbUser.name, // 使用数据库中的用户名
+                id: dbUser.id,
+                name: dbUser.name,
                 email: dbUser.email,
                 avatarUrl: dbUser.avatarUrl,
                 deptId: dbUser.deptId,
                 deptName: dbUser.deptName
             };
             
-            // 保存到本地存储
+            // 保存JWT token和用户信息到本地存储
+            localStorage.setItem('jwt_token', jwtData.access_token);
             localStorage.setItem('oidc_user', JSON.stringify(user));
-            localStorage.setItem('oidc_token', token);
+            localStorage.setItem('oidc_token', token); // 保留OIDC token用于登出
+            
+            console.log('🔐 User authentication completed:', user.name);
             
             setUser(user);
             setIsAuthenticated(true);
@@ -146,7 +239,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             window.location.href = '/';
         } catch (error) {
             console.error('Failed to complete OIDC login:', error);
-            alert('登录失败，请重试');
+            alert(`登录失败: ${error instanceof Error ? error.message : '未知错误'}，请重试`);
         }
     };
 
@@ -168,6 +261,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 清除本地存储
         localStorage.removeItem('oidc_user');
         localStorage.removeItem('oidc_token');
+        localStorage.removeItem('jwt_token'); // 清除JWT token
         
         setUser(null);
         setIsAuthenticated(false);

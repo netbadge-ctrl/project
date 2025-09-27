@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT认证测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .jwt-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 12px;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 JWT认证测试页面</h1>
+        <p>测试OIDC登录完成后的JWT认证流程</p>
+
+        <div id="auth-status" class="test-section">
+            <h3>认证状态</h3>
+            <p id="status-text">检查中...</p>
+            <div id="token-info"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>测试操作</h3>
+            <button onclick="testMockJWTLogin()">模拟JWT登录</button>
+            <button onclick="testAPIWithoutAuth()">测试无认证API调用</button>
+            <button onclick="testAPIWithAuth()">测试带认证API调用</button>
+            <button onclick="clearAuth()">清除认证信息</button>
+        </div>
+
+        <div class="test-section">
+            <h3>测试日志</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:9000/api';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#fff';
+            logDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateAuthStatus() {
+            const jwtToken = localStorage.getItem('jwt_token');
+            const oidcUser = localStorage.getItem('oidc_user');
+            const statusDiv = document.getElementById('auth-status');
+            const statusText = document.getElementById('status-text');
+            const tokenInfo = document.getElementById('token-info');
+
+            if (jwtToken && oidcUser) {
+                statusDiv.className = 'test-section success';
+                statusText.innerHTML = '✅ 已认证';
+                
+                try {
+                    const user = JSON.parse(oidcUser);
+                    tokenInfo.innerHTML = `
+                        <div class="jwt-info">
+                            <strong>用户信息:</strong><br>
+                            姓名: ${user.name}<br>
+                            邮箱: ${user.email}<br>
+                            部门: ${user.deptName}
+                        </div>
+                        <div class="jwt-info">
+                            <strong>JWT Token:</strong><br>
+                            ${jwtToken.substring(0, 50)}...
+                        </div>
+                    `;
+                } catch (e) {
+                    tokenInfo.innerHTML = '<div class="jwt-info">用户信息解析失败</div>';
+                }
+            } else {
+                statusDiv.className = 'test-section error';
+                statusText.innerHTML = '❌ 未认证';
+                tokenInfo.innerHTML = '<div class="jwt-info">无认证信息</div>';
+            }
+        }
+
+        async function testMockJWTLogin() {
+            log('开始模拟JWT登录测试...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/jwt-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        access_token: 'mock_access_token',
+                        user_info: {
+                            id: '22231',
+                            email: 'chennan1@kingsoft.com',
+                            name: '陈楠'
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`JWT登录成功: ${JSON.stringify(data)}`, 'success');
+                    
+                    // 保存JWT token
+                    localStorage.setItem('jwt_token', data.access_token);
+                    localStorage.setItem('oidc_user', JSON.stringify({
+                        id: '22231',
+                        name: '陈楠',
+                        email: 'chennan1@kingsoft.com',
+                        deptName: '前端开发部'
+                    }));
+                    
+                    updateAuthStatus();
+                } else {
+                    const errorData = await response.text();
+                    log(`JWT登录失败: ${response.status} - ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`JWT登录异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPIWithoutAuth() {
+            log('测试无认证API调用...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                if (response.ok) {
+                    log('无认证API调用成功（这应该失败）', 'error');
+                } else {
+                    log(`无认证API调用被正确拒绝: ${response.status}`, 'success');
+                }
+            } catch (error) {
+                log(`无认证API调用异常: ${error.message}`, 'info');
+            }
+        }
+
+        async function testAPIWithAuth() {
+            log('测试带认证API调用...', 'info');
+            
+            const jwtToken = localStorage.getItem('jwt_token');
+            if (!jwtToken) {
+                log('没有JWT token，请先模拟登录', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    log(`带认证API调用成功，获取到 ${users.length} 个用户`, 'success');
+                } else {
+                    log(`带认证API调用失败: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`带认证API调用异常: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('oidc_user');
+            localStorage.removeItem('oidc_token');
+            log('认证信息已清除', 'info');
+            updateAuthStatus();
+        }
+
+        // 页面加载时更新状态
+        updateAuthStatus();
+    </script>
+</body>
+</html>

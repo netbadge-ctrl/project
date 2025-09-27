@@ -152,11 +152,46 @@ const OIDCCallback: React.FC = () => {
                     
                     // 调用全局登录完成方法
                     if (window.completeOIDCLogin) {
-                        window.completeOIDCLogin(userInfo, tokens.access_token);
+                        await window.completeOIDCLogin(userInfo, tokens.access_token);
                     } else {
-                        // 备用方案：通过API查找用户并保存
+                        // 备用方案：直接调用JWT登录端点
                         try {
-                            const usersResponse = await fetch(`${appConfig.apiBaseUrl}/users`);
+                            console.log('🔐 Fallback: Using direct JWT login...');
+                            
+                            // 调用JWT登录端点
+                            const jwtResponse = await fetch(`${appConfig.apiBaseUrl}/jwt-login`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    access_token: tokens.access_token,
+                                    user_info: {
+                                        id: userInfo.sub || userInfo.id || userInfo.email,
+                                        email: userInfo.email,
+                                        name: userInfo.name || userInfo.preferred_username || userInfo.email
+                                    }
+                                })
+                            });
+                            
+                            if (!jwtResponse.ok) {
+                                const errorText = await jwtResponse.text();
+                                throw new Error(`JWT登录失败: ${jwtResponse.status} - ${errorText}`);
+                            }
+                            
+                            const jwtData = await jwtResponse.json();
+                            
+                            // 获取用户信息
+                            const usersResponse = await fetch(`${appConfig.apiBaseUrl}/users`, {
+                                headers: {
+                                    'Authorization': `Bearer ${jwtData.access_token}`
+                                }
+                            });
+                            
+                            if (!usersResponse.ok) {
+                                throw new Error('无法获取用户信息');
+                            }
+                            
                             const users = await usersResponse.json();
                             const dbUser = users.find((u: any) => u.email.toLowerCase() === userInfo.email.toLowerCase());
                             
@@ -168,16 +203,20 @@ const OIDCCallback: React.FC = () => {
                                 id: dbUser.id,
                                 name: dbUser.name,
                                 email: dbUser.email,
-                                avatarUrl: dbUser.avatarUrl
+                                avatarUrl: dbUser.avatarUrl,
+                                deptId: dbUser.deptId,
+                                deptName: dbUser.deptName
                             };
                             
+                            // 保存JWT token和用户信息
+                            localStorage.setItem('jwt_token', jwtData.access_token);
                             localStorage.setItem('oidc_user', JSON.stringify(user));
                             localStorage.setItem('oidc_token', tokens.access_token);
                             
                             window.location.href = '/';
                         } catch (error) {
-                            console.error('Failed to find user in database:', error);
-                            throw new Error('用户身份验证失败，请联系管理员');
+                            console.error('Fallback JWT login failed:', error);
+                            throw new Error(`用户身份验证失败: ${error instanceof Error ? error.message : '未知错误'}，请联系管理员`);
                         }
                     }
                 } else {

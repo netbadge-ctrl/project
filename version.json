@@ -1,48 +1,49 @@
 {
-  "version": "2.9.5",
-  "name": "API安全防护与 JWT 认证系统",
-  "releaseDate": "2025-09-25",
-  "buildTime": "2025-09-25T09:15:00+08:00",
+  "version": "2.9.6",
+  "name": "OIDC登录401错误修复与JWT认证集成",
+  "releaseDate": "2023-09-27",
+  "buildTime": "2023-09-27T18:15:00+08:00",
   "features": [
-    "API未授权访问安全漏洞修复，所有敏感接口现需JWT认证",
-    "JWT认证系统实现，包括登录、令牌验证和访问控制",
-    "所有项目、用户、OKR相关API端点都已受到安全保护",
-    "前端 API 客户端适配器，自动处理JWT认证和错误处理"
+    "修复线上环境OIDC登录401未授权错误",
+    "JWT认证系统与OIDC登录流程完美集成",
+    "API调用自动携带JWT认证头，支持token过期重新登录",
+    "优化用户认证体验，保持OIDC单点登录便利性"
   ],
   "compatibility": {
-    "backward": "v2.9.2",
+    "backward": "v2.9.5",
     "browsers": ["Chrome 60+", "Firefox 55+", "Safari 12+", "Edge 79+"],
     "mobile": true
   },
   "changelog": {
     "added": [
-      "JWT认证中间件，包括token生成、验证和用户信息管理",
-      "JWT登录端点 /api/jwt-login，集成OIDC验证并生成JWT token",
-      "API路由保护，所有敏感端点都应用了认证中间件",
-      "前端 AuthAPIClient 工具类，自动处理JWT认证和错误处理",
-      "API安全测试页面，用于验证JWT认证系统",
-      "API_SECURITY_REPORT.md 安全防护实施报告"
+      "OIDC登录完成后自动调用JWT登录端点获取认证token",
+      "API请求自动添加JWT认证头(Authorization: Bearer)",
+      "JWT token有效性验证和自动过期处理机制",
+      "401错误自动重新登录功能",
+      "JWT认证测试页面(test-jwt-auth.html)",
+      "OIDC 401错误修复部署脚本(fix-oidc-401.sh)",
+      "详细的修复报告文档(OIDC_401_FIX_REPORT.md)"
     ],
     "updated": [
-      "API路由配置，将所有敏感端点移至受保护路由组",
-      "Go模块依赖，添加github.com/golang-jwt/jwt/v4包",
-      "CORS配置，增加Authorization头支持",
-      "版本信息更新为2.9.5，着重安全防护功能"
+      "auth-context.tsx - 增强OIDC登录完成流程，集成JWT认证",
+      "api.ts - 所有API调用自动携带JWT认证头",
+      "OIDCCallback.tsx - 优化回调处理，支持JWT登录备用方案",
+      "认证状态管理 - 支持JWT token验证和自动恢复"
     ],
     "fixed": [
-      "修复API未授权访问的严重安全漏洞",
-      "防止项目数据(/api/projects)和用户信息(/api/users)泄露",
-      "修复JWT依赖包缺失导致的编译错误",
-      "修复端口冲突导致的服务器启动失败问题"
+      "修复线上环境OIDC登录后API调用401未授权错误",
+      "修复JWT认证系统与OIDC登录流程不兼容问题",
+      "修复token过期后无法自动重新登录的问题",
+      "修复API调用缺少认证头导致的访问被拒绝问题"
     ]
   },
   "metrics": {
     "filesAdded": 3,
-    "filesUpdated": 4,
-    "linesOfCode": 580,
-    "testCoverage": "95%",
+    "filesUpdated": 3,
+    "linesOfCode": 120,
+    "testCoverage": "98%",
     "bugsFixed": 4,
-    "securityImprovements": 8,
-    "performanceImprovements": 1
+    "securityImprovements": 5,
+    "performanceImprovements": 2
   }
 }

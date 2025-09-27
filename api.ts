@@ -5,24 +5,53 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000
 // 检查是否为开发模式
 const isDevelopment = import.meta.env.DEV || import.meta.env.NODE_ENV === 'development';
 
+// 获取JWT token
+const getJWTToken = () => {
+  return localStorage.getItem('jwt_token');
+};
+
 // 统一的请求处理函数
 const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
-  // 在生产环境中，这里可以添加JWT认证头
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...options.headers as Record<string, string>,
   };
   
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  // 在生产环境中添加JWT认证头
+  if (!isDevelopment) {
+    const jwtToken = getJWTToken();
+    if (jwtToken) {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+    }
   }
   
-  return response.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+    
+    // 如果是401错误且在生产环境，可能需要重新登录
+    if (response.status === 401 && !isDevelopment) {
+      console.error('JWT token expired or invalid, redirecting to login...');
+      // 清除过期的token
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('oidc_user');
+      localStorage.removeItem('oidc_token');
+      // 重新加载页面触发OIDC登录
+      window.location.reload();
+      throw new Error('Authentication expired, please log in again');
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error(`API request failed: ${endpoint}`, error);
+    throw error;
+  }
 };
 
 // API 请求封装
